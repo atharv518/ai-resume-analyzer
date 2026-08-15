@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Header from "../components/Header";
 import JobDescription from "../components/JobDescription";
 import ResumeUpload from "../components/ResumeUpload";
+import ResumeResults from "../components/ResumeResults";
 import StatusMessage from "../components/StatusMessage";
 import { submitResume } from "../services/api";
 
@@ -23,6 +24,13 @@ function AnalyzerPage() {
     setResult(null);
   };
 
+  const handleReset = () => {
+    setResumeFile(null);
+    setJobDescription("");
+    setError("");
+    setResult(null);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -38,7 +46,7 @@ function AnalyzerPage() {
       const response = await submitResume({ resumeFile, jobDescription });
       setResult(response);
     } catch (requestError) {
-      setError(requestError.message || "The resume could not be uploaded. Please try again.");
+      setError(requestError.message || "The resume could not be analyzed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -54,7 +62,7 @@ function AnalyzerPage() {
             AI Resume Analyzer
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-            Analyze your resume, improve ATS compatibility, and get personalized feedback.
+            Extract, parse, and review key details from your PDF and DOCX resumes locally.
           </p>
         </div>
 
@@ -66,27 +74,24 @@ function AnalyzerPage() {
 
             {error && <StatusMessage type="error">{error}</StatusMessage>}
 
-            {result && (
-              <StatusMessage type="success">
-                <p className="font-semibold">{result.message}</p>
-                <p className="mt-1 text-emerald-700">
-                  Received: {result.filename}. Job description {result.job_description_provided ? "included" : "not included"}.
-                </p>
-              </StatusMessage>
-            )}
-
             <button
               type="submit"
               disabled={!resumeFile || isSubmitting}
               className="flex w-full items-center justify-center rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              {isSubmitting ? "Uploading Resume..." : "Analyze Resume"}
+              {isSubmitting ? "Extracting & Analyzing Resume..." : "Analyze Resume"}
             </button>
           </div>
         </form>
 
+        {result && (
+          <div className="mx-auto max-w-2xl">
+            <ResumeResults result={result} onReset={handleReset} />
+          </div>
+        )}
+
         <p className="mx-auto mt-5 max-w-2xl text-center text-xs leading-5 text-slate-500">
-          Your resume is sent to the local development backend only. Analysis features are not part of Phase 1.
+          Your resume is processed locally in your development environment.
         </p>
       </main>
     </div>
@@ -94,3 +99,4 @@ function AnalyzerPage() {
 }
 
 export default AnalyzerPage;
+

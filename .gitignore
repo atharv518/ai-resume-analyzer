@@ -16,3 +16,4 @@ backend/.pip-cache/
 .DS_Store
 Thumbs.db
 .vscode/
+pyrefly.toml

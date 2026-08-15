@@ -7,8 +7,11 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = {".pdf", ".docx"}
 
 
-async def validate_resume_file(resume: UploadFile) -> str:
-    """Validate the selected resume's name, extension, and byte size."""
+async def validate_resume_file(resume: UploadFile) -> tuple[str, str, bytes]:
+    """Validate the selected resume's name, extension, and byte size.
+    
+    Returns a tuple of (filename, extension, uploaded_bytes).
+    """
     filename = resume.filename or ""
 
     if not filename:
@@ -39,4 +42,5 @@ async def validate_resume_file(resume: UploadFile) -> str:
             detail="The uploaded resume file is empty.",
         )
 
-    return filename
+    return filename, extension, uploaded_bytes
+

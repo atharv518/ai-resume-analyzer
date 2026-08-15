@@ -8,7 +8,7 @@ from app.routes.analyze import router as analyze_router
 app = FastAPI(
     title="AI Resume Analyzer API",
     version="0.1.0",
-    description="Phase 1 upload endpoint for the AI Resume Analyzer project.",
+    description="Backend API for the AI Resume Analyzer project.",
 )
 
 app.add_middleware(

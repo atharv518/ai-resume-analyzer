@@ -10,9 +10,6 @@ function Header() {
           </span>
           <span className="text-base font-semibold tracking-tight">AI Resume Analyzer</span>
         </a>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-          Phase 1
-        </span>
       </div>
     </header>
   );

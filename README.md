@@ -1,114 +1,257 @@
-# AI-Based Resume Analyzer and ATS Optimization System
+# AI Resume Analyzer
 
-A privacy-focused college project that will eventually help users analyze resumes and optionally compare them with a job description. This repository contains **Phase 1 only**: the foundation, a professional upload interface, and a FastAPI endpoint that receives and validates files.
+A privacy-focused web application designed to extract, parse, and analyze resumes locally. The system accepts resume documents in PDF or DOCX format, extracts text content, and identifies structured candidate details—including contact information, skills, work experience, education, projects, and certifications—with optional job description comparison context.
 
-## Current Phase 1 functionality
+---
 
-- Professional React landing page for the AI Resume Analyzer.
-- Resume upload by drag-and-drop or the operating system file picker.
-- PDF and DOCX validation, with a 10 MB maximum upload size.
-- Selected-file card showing the name, size, ready status, and a replacement action.
-- Optional Job Description textarea.
-- Frontend upload request sent with `FormData`.
-- FastAPI `POST /api/analyze` endpoint that validates and acknowledges the received file.
-- Local-development CORS configuration for the Vite frontend.
+## Key Features
 
-The success panel after submission confirms only that the backend received the resume. It does not show any analysis.
+- **Multi-Format Document Upload**: Supports PDF (`.pdf`) and Microsoft Word (`.docx`) documents up to 10 MB.
+- **Interactive Drag-and-Drop UI**: Clean upload zone with instant file validation, file-card preview, and reset capabilities.
+- **Robust Document Text Extraction**:
+  - Multi-page extraction and password-protection detection for PDFs via `pypdf`.
+  - Paragraph and table text extraction for DOCX documents via `python-docx`.
+- **Intelligent Resume Parsing**:
+  - Automatic extraction of candidate name, email address, and phone number.
+  - Heading-based section segmentation (Skills, Experience, Education, Projects, Certifications).
+  - Keyword matching and section-based aggregation for technical and soft skills.
+- **Job Description Context**: Optional input to capture target job descriptions alongside resumes.
+- **Structured Results Dashboard**:
+  - Candidate profile overview and contact shortcuts.
+  - Categorized skill tags and formatted section entries.
+  - Collapsible raw text viewer for extracted document inspection.
+- **Local & Privacy-Centric**: Document processing happens directly within your local development environment without sending data to external third-party APIs.
+- **Fast & Typed Backend**: Built with FastAPI and Pydantic for validation, error handling, and auto-generated OpenAPI documentation.
 
-## Not implemented yet
+---
 
-AI analysis, local LLM/Ollama integration, resume parsing, embeddings, ATS scoring, recommendations, databases, authentication, and external AI APIs are intentionally **not implemented** in this phase. They belong to later phases.
+## How It Works
 
-## Tech stack
+```
+┌─────────────────┐       Multipart Form Data        ┌─────────────────────────┐
+│                 │  (Resume File + Job Description) │                         │
+│  React Frontend │ ───────────────────────────────> │     FastAPI Backend     │
+│                 │ <─────────────────────────────── │                         │
+└─────────────────┘        Parsed JSON Response      └────────────┬────────────┘
+                                                                  │
+                                       ┌──────────────────────────┴──────────────────────────┐
+                                       │                                                     │
+                                       ▼                                                     ▼
+                            ┌─────────────────────┐                               ┌─────────────────────┐
+                            │   Text Extractor    │                               │    Resume Parser    │
+                            │ (pypdf/python-docx) │ ───> Extracted Document Text ─> (Regex & Sections)  │
+                            └─────────────────────┘                               └─────────────────────┘
+```
 
-- Frontend: React, Vite, Tailwind CSS
-- Backend: Python, FastAPI, Uvicorn
+1. **Upload & Validation**: The user selects or drags a resume (`.pdf` or `.docx`). Client and server validate file format, file size (max 10 MB), and integrity.
+2. **Text Extraction**: The backend processes the document bytes, extracting plain text from PDF pages or DOCX paragraphs and tables.
+3. **Information Parsing**: Heuristic heading detection segments the document into functional sections, while regex matchers identify contact details and keyword matchers aggregate skills.
+4. **Result Presentation**: The API returns structured JSON data containing candidate attributes, segmented sections, and raw text, which the frontend renders in an intuitive results dashboard.
 
-## Project structure
+---
+
+## Tech Stack
+
+### Frontend
+- **Framework**: [React 18](https://react.dev/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+
+### Backend
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/)
+- **ASGI Server**: [Uvicorn](https://www.uvicorn.org/)
+- **Data Validation**: [Pydantic v2](https://docs.pydantic.dev/)
+- **Document Processing**: [pypdf](https://pypdf.readthedocs.io/), [python-docx](https://python-docx.readthedocs.io/)
+- **Form Handling**: [python-multipart](https://andrew-d.github.io/python-multipart/)
+
+---
+
+## Project Structure
 
 ```text
-resume-ai-analyzer/
+ai-resume-analyzer/
 ├── frontend/
 │   ├── src/
-│   │   ├── components/       # Small reusable UI pieces
-│   │   ├── pages/            # Main analyzer page
-│   │   ├── services/api.js   # Frontend API request helper
+│   │   ├── components/
+│   │   │   ├── Header.jsx           # Top navigation bar
+│   │   │   ├── JobDescription.jsx   # Job description textarea component
+│   │   │   ├── ResumeResults.jsx    # Structured results and raw text viewer
+│   │   │   ├── ResumeUpload.jsx     # Drag-and-drop file upload zone
+│   │   │   └── StatusMessage.jsx    # Alert and feedback messages
+│   │   ├── pages/
+│   │   │   └── AnalyzerPage.jsx     # Main analyzer workflow page
+│   │   ├── services/
+│   │   │   └── api.js               # Frontend API client helper
 │   │   ├── App.jsx
+│   │   ├── index.css
 │   │   └── main.jsx
 │   ├── .env.example
-│   └── package.json
+│   ├── package.json
+│   ├── tailwind.config.js
+│   └── vite.config.js
 ├── backend/
 │   ├── app/
-│   │   ├── routes/analyze.py # POST /api/analyze
-│   │   ├── services/         # Reserved for future analysis logic
-│   │   ├── utils/            # File validation helper
-│   │   └── main.py
+│   │   ├── routes/
+│   │   │   └── analyze.py           # POST /api/analyze route
+│   │   ├── services/
+│   │   │   ├── extractor.py         # PDF and DOCX text extraction logic
+│   │   │   └── parser.py            # Resume entity & section parsing
+│   │   ├── utils/
+│   │   │   └── file_validation.py   # File type and size validation
+│   │   ├── config.py                # Environment configuration
+│   │   └── main.py                  # FastAPI application entry point
 │   ├── .env.example
 │   └── requirements.txt
 ├── README.md
 └── .gitignore
 ```
 
+---
+
 ## Prerequisites
 
-- Node.js 18 or newer
-- Python 3.10 or newer
+Ensure you have the following installed on your system:
 
-## Run the backend
+- **Node.js**: v18.0.0 or higher ([Download Node.js](https://nodejs.org/))
+- **Python**: v3.10 or higher ([Download Python](https://www.python.org/))
+- **npm** or package manager of choice
 
-Open a terminal in the `backend` directory:
+---
 
-```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
+## Getting Started
 
-The API will run at `http://localhost:8000`. You can confirm it is available at `http://localhost:8000/health`.
+### 1. Run the Backend
 
-By default, the API accepts requests from `http://localhost:5173` and `http://127.0.0.1:5173`. To use another local frontend origin, set the `FRONTEND_ORIGINS` environment variable to a comma-separated list before starting Uvicorn.
+1. Navigate to the `backend` directory:
+   ```bash
+   cd backend
+   ```
 
-## Run the frontend
+2. Create and activate a virtual environment:
+   - **Windows (PowerShell)**:
+     ```powershell
+     python -m venv .venv
+     .\.venv\Scripts\Activate.ps1
+     ```
+   - **macOS / Linux**:
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     ```
 
-Open a second terminal in the `frontend` directory:
+3. Install backend dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```powershell
-cd frontend
-npm install
-npm run dev
-```
+4. Start the FastAPI development server:
+   ```bash
+   uvicorn app.main:app --reload
+   ```
 
-Vite prints the local URL, normally `http://localhost:5173`.
+The backend server will start at `http://localhost:8000`.
+- Health check: `http://localhost:8000/health`
+- Interactive API Docs (Swagger UI): `http://localhost:8000/docs`
 
-The frontend defaults to `http://127.0.0.1:8000` for its API. If the backend uses another URL, copy `.env.example` to `.env`, update `VITE_API_BASE_URL`, and restart `npm run dev`.
+> **Note**: To configure custom frontend origins for CORS, set the `FRONTEND_ORIGINS` environment variable (e.g. `FRONTEND_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"`).
 
-## API contract for Phase 1
+---
 
-`POST /api/analyze` accepts multipart form data:
+### 2. Run the Frontend
 
-- `resume` (required): a non-empty `.pdf` or `.docx` file, 10 MB or smaller
-- `job_description` (optional): text; may be omitted or empty
+1. Open a new terminal and navigate to the `frontend` directory:
+   ```bash
+   cd frontend
+   ```
 
-Successful example response:
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
+3. (Optional) Configure environment variables:
+   Copy `.env.example` to `.env` if you need to override the default API URL:
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+
+The frontend application will be accessible at `http://localhost:5173`.
+
+---
+
+## API Reference
+
+### `POST /api/analyze`
+
+Accepts a multipart form submission containing a resume file and optional job description text.
+
+#### Request (Multipart Form)
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `resume` | File | Yes | `.pdf` or `.docx` document (max 10 MB) |
+| `job_description` | Text | No | Target job description string |
+
+#### Example Success Response (`200 OK`)
 ```json
 {
   "success": true,
-  "message": "Resume received successfully.",
+  "message": "Resume extracted and parsed successfully.",
   "filename": "candidate_resume.pdf",
-  "job_description_provided": true
+  "job_description_provided": true,
+  "parsed_resume": {
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "phone": "+1 (555) 123-4567",
+    "skills": [
+      "Python",
+      "FastAPI",
+      "React",
+      "JavaScript",
+      "Docker",
+      "SQL"
+    ],
+    "education": [
+      "B.S. in Computer Science - University of Technology (2020 - 2024)"
+    ],
+    "experience": [
+      "Software Engineer Intern - Acme Corp (2023 - 2024)",
+      "Developed backend microservices using FastAPI and PostgreSQL"
+    ],
+    "projects": [
+      "AI Resume Analyzer - Built full-stack document extraction application"
+    ],
+    "certifications": [
+      "AWS Certified Cloud Practitioner"
+    ]
+  },
+  "extracted_text": "Jane Doe\njane.doe@example.com\n..."
 }
 ```
 
-## Supported resume formats
+### `GET /health`
 
-- PDF (`.pdf`)
-- Microsoft Word DOCX (`.docx`)
+Health check endpoint to verify backend service availability.
 
-Files above 10 MB, empty files, and any other file extension are rejected by both the interface and the backend. Backend validation is the final authority.
+#### Example Response (`200 OK`)
+```json
+{
+  "ok": true
+}
+```
 
-## Current limitations
+---
 
-This is an upload and validation foundation only. The server temporarily reads the upload solely to check its size and does not parse, save, score, or analyze the document. No resume data is sent to an LLM or external service.
+## Supported File Formats & Validation
+
+| Format | Extension | Notes |
+| :--- | :--- | :--- |
+| **PDF** | `.pdf` | Multi-page text extraction. Password-protected and scanned image-only PDFs are rejected with informative error messages. |
+| **Microsoft Word** | `.docx` | Paragraph and table text extraction. |
+
+- **Maximum Upload Size**: 10 MB per file.
+- **Validation Rules**: Empty files, unsupported extensions, and files exceeding 10 MB are rejected by both client-side guards and server-side validation.
