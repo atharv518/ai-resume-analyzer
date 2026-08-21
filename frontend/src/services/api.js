@@ -3,7 +3,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:800
 export async function submitResume({ resumeFile, jobDescription }) {
   const formData = new FormData();
   formData.append("resume", resumeFile);
-  formData.append("job_description", jobDescription);
+  formData.append("job_description", (jobDescription || "").trim());
 
   let response;
 

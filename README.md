@@ -1,52 +1,71 @@
-# AI Resume Analyzer
+# AI ATS Resume Analyzer
 
-A privacy-focused web application designed to extract, parse, and analyze resumes locally. The system accepts resume documents in PDF or DOCX format, extracts text content, and identifies structured candidate details—including contact information, skills, work experience, education, projects, and certifications—with optional job description comparison context.
+An intelligent, privacy-first web application for automated resume parsing, Job Description matching, deterministic ATS scoring, and actionable AI-driven optimization recommendations.
+
+Built with **React 18 + Vite + Tailwind CSS** on the frontend and **FastAPI + Pydantic + Uvicorn** on the backend.
 
 ---
 
 ## Key Features
 
-- **Multi-Format Document Upload**: Supports PDF (`.pdf`) and Microsoft Word (`.docx`) documents up to 10 MB.
-- **Interactive Drag-and-Drop UI**: Clean upload zone with instant file validation, file-card preview, and reset capabilities.
+- **Two-Page User Experience**:
+  - **Page 1 (Upload & Input)**: Drag-and-drop document upload (`.pdf` and `.docx`), target job description textarea with validation, and smooth loading state.
+  - **Page 2 (Results Dashboard)**: Dedicated dashboard displaying overall ATS score, category breakdowns, skill comparisons, strengths, recommendations, and back navigation.
+- **Deterministic ATS Scoring (0–100)**:
+  - Transparent, mathematical scoring based on skill matching, keyword overlap, project scope, education, and resume structure.
+  - **Adaptive Candidate Weighting**: Calibrated weights for freshers (no penalty for 0 commercial experience) vs experienced candidates.
+- **Candidate Type & Experience Detection**:
+  - Automatically identifies **Fresher / Early Career** vs **Experienced Professional**.
+  - Distinguishes **Professional Work Experience**, **Internships**, **Virtual Job Simulations** (e.g. Forage), and **Academic/Personal Projects**.
+  - **Conditional Experience Display**: Experience section is **completely omitted** for freshers with no commercial background (no "Experience: 0%" or empty cards).
+- **Skill & Keyword Gap Analysis**:
+  - **Matching Skills**: Highlights technical skills present in both resume and job posting.
+  - **Missing Skills**: Lists crucial requirements missing from the resume, paired with clear ethical guidance.
+- **Actionable AI Recommendations**:
+  - Contextual recommendations focusing on measurable metrics, project depth, and role alignment.
+- **Modular Feature Controls**:
+  - Centralized toggles in `app/config.py` allow enabling/disabling individual sections (`SHOW_ATS_SCORE`, `SHOW_SKILL_MATCH`, `SHOW_KEYWORD_ANALYSIS`, `SHOW_EXPERIENCE_ANALYSIS`, `SHOW_PROJECT_ANALYSIS`, `SHOW_AI_RECOMMENDATIONS`, `SHOW_RESUME_STRENGTHS`) cleanly without deleting underlying code.
 - **Robust Document Text Extraction**:
-  - Multi-page extraction and password-protection detection for PDFs via `pypdf`.
-  - Paragraph and table text extraction for DOCX documents via `python-docx`.
-- **Intelligent Resume Parsing**:
-  - Automatic extraction of candidate name, email address, and phone number.
-  - Heading-based section segmentation (Skills, Experience, Education, Projects, Certifications).
-  - Keyword matching and section-based aggregation for technical and soft skills.
-- **Job Description Context**: Optional input to capture target job descriptions alongside resumes.
-- **Structured Results Dashboard**:
-  - Candidate profile overview and contact shortcuts.
-  - Categorized skill tags and formatted section entries.
-  - Collapsible raw text viewer for extracted document inspection.
-- **Local & Privacy-Centric**: Document processing happens directly within your local development environment without sending data to external third-party APIs.
-- **Fast & Typed Backend**: Built with FastAPI and Pydantic for validation, error handling, and auto-generated OpenAPI documentation.
+  - Multi-page extraction and password detection for PDFs via `pypdf`.
+  - Paragraph and table extraction for DOCX documents via `python-docx`.
 
 ---
 
 ## How It Works
 
 ```
-┌─────────────────┐       Multipart Form Data        ┌─────────────────────────┐
-│                 │  (Resume File + Job Description) │                         │
-│  React Frontend │ ───────────────────────────────> │     FastAPI Backend     │
-│                 │ <─────────────────────────────── │                         │
-└─────────────────┘        Parsed JSON Response      └────────────┬────────────┘
-                                                                  │
-                                       ┌──────────────────────────┴──────────────────────────┐
-                                       │                                                     │
-                                       ▼                                                     ▼
-                            ┌─────────────────────┐                               ┌─────────────────────┐
-                            │   Text Extractor    │                               │    Resume Parser    │
-                            │ (pypdf/python-docx) │ ───> Extracted Document Text ─> (Regex & Sections)  │
-                            └─────────────────────┘                               └─────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    PAGE 1 — INPUT & UPLOAD                  │
+│   1. Upload Resume (.pdf / .docx)                           │
+│   2. Paste Target Job Description (Required)                │
+│   3. Click "Analyze Resume" (In-place Loading State)        │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Multipart Form Data
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       FASTAPI BACKEND                       │
+│   • Document Text Extractor (PDF / DOCX)                    │
+│   • Regex & Heading Parser (Contact & Sections)             │
+│   • Job Matcher (Skills & Domain Keywords)                  │
+│   • Experience Detector (Candidate Type & Simulations)      │
+│   • Deterministic ATS Scorer (0–100 Weighted Score)         │
+│   • AI Analyzer (Gemini / OpenAI / Deterministic Fallback)  │
+│   • Centralized Feature Flag Filter                         │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Structured JSON Response
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    PAGE 2 — RESULTS DASHBOARD               │
+│   • ATS Score Gauge (XX / 100) & Category Progress Bars     │
+│   • Candidate Overview Badge (Fresher vs Experienced)       │
+│   • Matching Skills vs Missing Gap Skills                   │
+│   • Resume Strengths & AI Actionable Recommendations        │
+│   • Conditional Experience Section (Hidden for Freshers)    │
+│   • Projects & Education Sections                           │
+│   • Collapsible Extracted Document Text                     │
+│   • "Upload Another Resume" Back Navigation Button          │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-1. **Upload & Validation**: The user selects or drags a resume (`.pdf` or `.docx`). Client and server validate file format, file size (max 10 MB), and integrity.
-2. **Text Extraction**: The backend processes the document bytes, extracting plain text from PDF pages or DOCX paragraphs and tables.
-3. **Information Parsing**: Heuristic heading detection segments the document into functional sections, while regex matchers identify contact details and keyword matchers aggregate skills.
-4. **Result Presentation**: The API returns structured JSON data containing candidate attributes, segmented sections, and raw text, which the frontend renders in an intuitive results dashboard.
 
 ---
 
@@ -61,6 +80,7 @@ A privacy-focused web application designed to extract, parse, and analyze resume
 - **Framework**: [FastAPI](https://fastapi.tiangolo.com/)
 - **ASGI Server**: [Uvicorn](https://www.uvicorn.org/)
 - **Data Validation**: [Pydantic v2](https://docs.pydantic.dev/)
+- **HTTP Client**: [HTTPX](https://www.python-httpx.org/)
 - **Document Processing**: [pypdf](https://pypdf.readthedocs.io/), [python-docx](https://python-docx.readthedocs.io/)
 - **Form Handling**: [python-multipart](https://andrew-d.github.io/python-multipart/)
 
@@ -73,48 +93,45 @@ ai-resume-analyzer/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Header.jsx           # Top navigation bar
-│   │   │   ├── JobDescription.jsx   # Job description textarea component
-│   │   │   ├── ResumeResults.jsx    # Structured results and raw text viewer
-│   │   │   ├── ResumeUpload.jsx     # Drag-and-drop file upload zone
-│   │   │   └── StatusMessage.jsx    # Alert and feedback messages
+│   │   │   ├── ExperienceAnalysis.jsx   # Conditional experience & simulation badges
+│   │   │   ├── Header.jsx               # Top navigation bar
+│   │   │   ├── JobDescription.jsx       # Job description textarea with validation
+│   │   │   ├── ResumeResults.jsx        # Modular result sections
+│   │   │   ├── ResumeUpload.jsx         # Drag-and-drop file upload zone
+│   │   │   ├── ScoreCard.jsx            # Circular ATS score gauge & breakdowns
+│   │   │   └── StatusMessage.jsx        # Alert feedback banner
 │   │   ├── pages/
-│   │   │   └── AnalyzerPage.jsx     # Main analyzer workflow page
+│   │   │   ├── AnalyzerPage.jsx         # Page 1: Upload & Input page
+│   │   │   └── ResultsPage.jsx          # Page 2: Comprehensive Results Dashboard
 │   │   ├── services/
-│   │   │   └── api.js               # Frontend API client helper
-│   │   ├── App.jsx
+│   │   │   └── api.js                   # Frontend API client
+│   │   ├── App.jsx                      # Two-page state navigator
 │   │   ├── index.css
 │   │   └── main.jsx
 │   ├── .env.example
 │   ├── package.json
-│   ├── tailwind.config.js
 │   └── vite.config.js
 ├── backend/
 │   ├── app/
 │   │   ├── routes/
-│   │   │   └── analyze.py           # POST /api/analyze route
+│   │   │   └── analyze.py               # POST /api/analyze route
 │   │   ├── services/
-│   │   │   ├── extractor.py         # PDF and DOCX text extraction logic
-│   │   │   └── parser.py            # Resume entity & section parsing
+│   │   │   ├── ai_analyzer.py           # LLM provider & deterministic fallback
+│   │   │   ├── ats_scorer.py            # Adaptive ATS score calculation (0-100)
+│   │   │   ├── experience_detector.py   # Candidate classification & simulation detection
+│   │   │   ├── extractor.py             # PDF & DOCX text extraction
+│   │   │   ├── job_matcher.py           # Skill and keyword comparison engine
+│   │   │   └── parser.py                # Regex candidate info & section parser
 │   │   ├── utils/
-│   │   │   └── file_validation.py   # File type and size validation
-│   │   ├── config.py                # Environment configuration
-│   │   └── main.py                  # FastAPI application entry point
+│   │   │   └── file_validation.py       # File format and size validation
+│   │   ├── config.py                    # Modular feature flags & AI settings
+│   │   └── main.py                      # FastAPI application entry point
 │   ├── .env.example
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── tests_phase3.py                  # Automated backend test suite
 ├── README.md
 └── .gitignore
 ```
-
----
-
-## Prerequisites
-
-Ensure you have the following installed on your system:
-
-- **Node.js**: v18.0.0 or higher ([Download Node.js](https://nodejs.org/))
-- **Python**: v3.10 or higher ([Download Python](https://www.python.org/))
-- **npm** or package manager of choice
 
 ---
 
@@ -144,22 +161,25 @@ Ensure you have the following installed on your system:
    pip install -r requirements.txt
    ```
 
-4. Start the FastAPI development server:
+4. (Optional) Configure environment variables:
+   Copy `.env.example` to `.env` to configure AI keys or toggle feature flags:
+   ```bash
+   cp .env.example .env
+   ```
+
+5. Start the FastAPI development server:
    ```bash
    uvicorn app.main:app --reload
    ```
 
-The backend server will start at `http://localhost:8000`.
-- Health check: `http://localhost:8000/health`
-- Interactive API Docs (Swagger UI): `http://localhost:8000/docs`
-
-> **Note**: To configure custom frontend origins for CORS, set the `FRONTEND_ORIGINS` environment variable (e.g. `FRONTEND_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"`).
+- Health Check: `http://localhost:8000/health`
+- OpenAPI Docs: `http://localhost:8000/docs`
 
 ---
 
 ### 2. Run the Frontend
 
-1. Open a new terminal and navigate to the `frontend` directory:
+1. Navigate to the `frontend` directory:
    ```bash
    cd frontend
    ```
@@ -169,18 +189,12 @@ The backend server will start at `http://localhost:8000`.
    npm install
    ```
 
-3. (Optional) Configure environment variables:
-   Copy `.env.example` to `.env` if you need to override the default API URL:
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Start the Vite development server:
+3. Start the Vite development server:
    ```bash
    npm run dev
    ```
 
-The frontend application will be accessible at `http://localhost:5173`.
+The application will be accessible at `http://localhost:5173`.
 
 ---
 
@@ -194,64 +208,80 @@ Accepts a multipart form submission containing a resume file and optional job de
 | Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `resume` | File | Yes | `.pdf` or `.docx` document (max 10 MB) |
-| `job_description` | Text | No | Target job description string |
-
-#### Example Success Response (`200 OK`)
-```json
-{
-  "success": true,
-  "message": "Resume extracted and parsed successfully.",
-  "filename": "candidate_resume.pdf",
-  "job_description_provided": true,
-  "parsed_resume": {
-    "name": "Jane Doe",
-    "email": "jane.doe@example.com",
-    "phone": "+1 (555) 123-4567",
-    "skills": [
-      "Python",
-      "FastAPI",
-      "React",
-      "JavaScript",
-      "Docker",
-      "SQL"
-    ],
-    "education": [
-      "B.S. in Computer Science - University of Technology (2020 - 2024)"
-    ],
-    "experience": [
-      "Software Engineer Intern - Acme Corp (2023 - 2024)",
-      "Developed backend microservices using FastAPI and PostgreSQL"
-    ],
-    "projects": [
-      "AI Resume Analyzer - Built full-stack document extraction application"
-    ],
-    "certifications": [
-      "AWS Certified Cloud Practitioner"
-    ]
-  },
-  "extracted_text": "Jane Doe\njane.doe@example.com\n..."
-}
-```
-
-### `GET /health`
-
-Health check endpoint to verify backend service availability.
+| `job_description` | Text | No | Target job description string (optional) |
 
 #### Example Response (`200 OK`)
 ```json
 {
-  "ok": true
+  "success": true,
+  "message": "Resume analyzed successfully against job description.",
+  "filename": "candidate_resume.pdf",
+  "job_description_provided": true,
+  "feature_flags": {
+    "SHOW_ATS_SCORE": true,
+    "SHOW_SKILL_MATCH": true,
+    "SHOW_KEYWORD_ANALYSIS": true,
+    "SHOW_EXPERIENCE_ANALYSIS": true,
+    "SHOW_PROJECT_ANALYSIS": true,
+    "SHOW_AI_RECOMMENDATIONS": true,
+    "SHOW_RESUME_STRENGTHS": true
+  },
+  "parsed_resume": {
+    "name": "Alex Mercer",
+    "email": "alex.mercer@example.com",
+    "phone": "(555) 234-5678",
+    "skills": ["Python", "FastAPI", "React", "PostgreSQL", "Docker", "Git"],
+    "education": ["B.S. in Computer Science (2020 - 2024)"],
+    "experience": [],
+    "projects": ["AI Resume Analyzer - Built full-stack platform"],
+    "certifications": ["AWS Certified Cloud Practitioner"]
+  },
+  "ats_score": {
+    "overall_score": 88,
+    "rating": "Excellent Match",
+    "breakdown": {
+      "skills_score": 90,
+      "keyword_score": 85,
+      "projects_score": 90,
+      "experience_score": null,
+      "education_score": 80,
+      "structure_score": 95
+    },
+    "summary_feedback": "Your profile shows outstanding alignment with the target role and key technical requirements."
+  },
+  "skill_comparison": {
+    "matching_skills": ["Python", "FastAPI", "PostgreSQL", "Docker"],
+    "missing_skills": ["AWS", "CI/CD"],
+    "matching_keywords": ["REST APIs", "Microservices"],
+    "missing_keywords": ["Kubernetes"],
+    "skill_match_percentage": 80.0,
+    "keyword_match_percentage": 75.0
+  },
+  "experience_analysis": {
+    "candidate_type": "fresher",
+    "has_professional_experience": false,
+    "has_internship_experience": false,
+    "has_virtual_experience": false,
+    "include_experience_section": false,
+    "professional_items": [],
+    "internship_items": [],
+    "virtual_simulation_items": [],
+    "explanation": "Candidate is a fresher with academic and project background."
+  },
+  "ai_insights": {
+    "role_fit_summary": "The candidate is evaluated as a fresher candidate matching 80.0% of required skills.",
+    "resume_strengths": [
+      "Strong technical alignment with key role requirements in Python, FastAPI, PostgreSQL.",
+      "Practical portfolio demonstrates hands-on implementation across distinct projects."
+    ],
+    "recommendations": [
+      "Review missing technologies mentioned in the job description (AWS, CI/CD).",
+      "Quantify project outcomes with measurable metrics."
+    ],
+    "project_relevance_summary": "Projects demonstrate practical coding capability.",
+    "is_ai_powered": false
+  },
+  "extracted_text": "Alex Mercer\nalex.mercer@example.com\n..."
 }
 ```
 
----
-
-## Supported File Formats & Validation
-
-| Format | Extension | Notes |
-| :--- | :--- | :--- |
-| **PDF** | `.pdf` | Multi-page text extraction. Password-protected and scanned image-only PDFs are rejected with informative error messages. |
-| **Microsoft Word** | `.docx` | Paragraph and table text extraction. |
-
-- **Maximum Upload Size**: 10 MB per file.
-- **Validation Rules**: Empty files, unsupported extensions, and files exceeding 10 MB are rejected by both client-side guards and server-side validation.
