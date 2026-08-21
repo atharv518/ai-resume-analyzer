@@ -61,15 +61,25 @@ function ExperienceAnalysis({ experienceAnalysis }) {
                   Work History ({professional_items.length})
                 </h4>
                 <ul className="space-y-2.5">
-                  {professional_items.map((item, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 text-sm leading-relaxed text-slate-800"
-                    >
-                      <span className="mt-1 flex h-2 w-2 shrink-0 rounded-full bg-slate-900" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
+                  {professional_items.map((item, idx) => {
+                    const parts = String(item).split("\n");
+                    const title = parts[0].trim();
+                    const desc = parts.slice(1).join(" ").trim();
+                    return (
+                      <li
+                        key={idx}
+                        className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 text-sm leading-relaxed text-slate-800"
+                      >
+                        <span className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-slate-900" />
+                        <div>
+                          <div className="font-semibold text-slate-900">{title}</div>
+                          {desc && (
+                            <p className="mt-1 text-xs text-slate-600 leading-relaxed">{desc}</p>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -80,15 +90,25 @@ function ExperienceAnalysis({ experienceAnalysis }) {
                   Internships ({internship_items.length})
                 </h4>
                 <ul className="space-y-2.5">
-                  {internship_items.map((item, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-3.5 text-sm leading-relaxed text-slate-800"
-                    >
-                      <span className="mt-1 flex h-2 w-2 shrink-0 rounded-full bg-blue-600" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
+                  {internship_items.map((item, idx) => {
+                    const parts = String(item).split("\n");
+                    const title = parts[0].trim();
+                    const desc = parts.slice(1).join(" ").trim();
+                    return (
+                      <li
+                        key={idx}
+                        className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-3.5 text-sm leading-relaxed text-slate-800"
+                      >
+                        <span className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                        <div>
+                          <div className="font-semibold text-slate-900">{title}</div>
+                          {desc && (
+                            <p className="mt-1 text-xs text-slate-600 leading-relaxed">{desc}</p>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -117,15 +137,32 @@ function ExperienceAnalysis({ experienceAnalysis }) {
           <p className="mt-3 text-xs leading-relaxed text-slate-600">
             Recognized as a practical virtual simulation (e.g. Forage). This demonstrates self-directed skill learning and industry familiarity.
           </p>
-          <ul className="mt-4 space-y-2">
-            {virtual_simulation_items.map((item, idx) => (
-              <li
-                key={idx}
-                className="rounded-xl border border-indigo-100 bg-white p-3 text-sm text-slate-800 shadow-2xs"
-              >
-                {item}
-              </li>
-            ))}
+          <ul className="mt-4 space-y-3">
+            {virtual_simulation_items.map((item, idx) => {
+              const isObj = typeof item === "object" && item !== null;
+              const rawStr = isObj ? item.title || "" : String(item);
+              const parts = rawStr.split("\n");
+              const title = parts[0].trim();
+              const inlineDesc = parts.slice(1).join(" ").trim();
+              const objDesc = isObj && Array.isArray(item.description) ? item.description.join(" ").trim() : (isObj ? item.description : "");
+              const description = objDesc || inlineDesc;
+
+              return (
+                <li
+                  key={idx}
+                  className="rounded-xl border border-indigo-100 bg-white p-4 shadow-2xs text-slate-800"
+                >
+                  <div className="font-semibold text-slate-900 text-sm">
+                    {title}
+                  </div>
+                  {description && (
+                    <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
+                      {description}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

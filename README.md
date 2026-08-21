@@ -173,7 +173,7 @@ ai-resume-analyzer/
    ```
 
 - Health Check: `http://localhost:8000/health`
-- OpenAPI Docs: `http://localhost:8000/docs`
+- OpenAPI Docs: `http://localhost:81000/docs`
 
 ---
 

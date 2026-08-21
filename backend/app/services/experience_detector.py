@@ -1,5 +1,6 @@
 import re
 from typing import TypedDict
+from app.services.parser import clean_line, is_bullet_line
 
 
 class ExperienceItem(TypedDict):
@@ -89,78 +90,103 @@ EXPERIENCE_YEARS_PATTERNS = [
 def classify_experience_text(
     experience_lines: list[str],
     projects_lines: list[str],
-    full_text: str
+    full_text: str,
+    certifications_lines: list[str] | None = None,
 ) -> ExperienceClassification:
-    """Analyze resume experience lines and full text to classify candidate type and experience."""
+    """Analyze resume entries across sections and full text to classify candidate type and experience."""
     professional_items: list[str] = []
     internship_items: list[str] = []
     virtual_simulation_items: list[str] = []
     structured_items: list[ExperienceItem] = []
 
-    # Combined text for heuristic search
-    exp_text = "\n".join(experience_lines).lower()
-    full_text_lower = full_text.lower()
+    cert_lines = certifications_lines or []
 
-    # 1. Process explicit experience lines
-    for line in experience_lines:
-        line_lower = line.lower()
+    def check_and_add_simulation(entry_str: str) -> bool:
+        """Check if an entry is a virtual simulation and add if not duplicated."""
+        entry_lower = entry_str.lower()
+        if any(re.search(pat, entry_lower) for pat in VIRTUAL_SIMULATION_KEYWORDS):
+            parts = entry_str.split("\n", 1)
+            title = parts[0].strip()
+            desc = parts[1].strip() if len(parts) > 1 else ""
 
-        # Check for virtual simulation first (e.g. Forage, Job Simulation)
-        if any(re.search(pat, line_lower) for pat in VIRTUAL_SIMULATION_KEYWORDS):
-            virtual_simulation_items.append(line)
+            # Check if this item is already recorded
+            for existing in virtual_simulation_items:
+                existing_title = existing.split("\n", 1)[0].strip().lower()
+                if title.lower() in existing_title or existing_title in title.lower():
+                    return True
+
+            virtual_simulation_items.append(entry_str)
             structured_items.append({
-                "title": line,
+                "title": title,
                 "organization": "Virtual Job Simulation",
                 "category": "virtual_simulation",
-                "description": [line]
+                "description": [desc] if desc else [title]
             })
+            return True
+        return False
+
+    # 1. Check certifications entries for virtual simulations (e.g. Forage, Job Simulations listed under Certifications)
+    for entry in cert_lines:
+        check_and_add_simulation(entry)
+
+    # 2. Process explicit experience lines
+    for entry in experience_lines:
+        entry_lower = entry.lower()
+
+        # Check for virtual simulation first
+        if check_and_add_simulation(entry):
             continue
 
         # Check for internship
-        if any(re.search(pat, line_lower) for pat in INTERNSHIP_PATTERNS):
-            internship_items.append(line)
+        if any(re.search(pat, entry_lower) for pat in INTERNSHIP_PATTERNS):
+            internship_items.append(entry)
+            title = entry.split("\n", 1)[0].strip()
+            desc = entry.split("\n", 1)[1].strip() if "\n" in entry else ""
             structured_items.append({
-                "title": line,
+                "title": title,
                 "organization": "Internship",
                 "category": "internship",
-                "description": [line]
+                "description": [desc] if desc else [title]
             })
             continue
 
-        # Check if it looks like project mistakenly placed under experience
-        if any(re.search(pat, line_lower) for pat in PROJECT_PATTERNS):
-            # Treat as project, not professional employment
+        # Check if it looks like a project mistakenly placed under experience
+        if any(re.search(pat, entry_lower) for pat in PROJECT_PATTERNS):
             continue
 
         # Check if it has genuine professional role or date markers
-        is_role = any(re.search(pat, line_lower) for pat in PROFESSIONAL_ROLE_PATTERNS)
-        is_date = any(re.search(pat, line_lower) for pat in EXPERIENCE_YEARS_PATTERNS)
+        is_role = any(re.search(pat, entry_lower) for pat in PROFESSIONAL_ROLE_PATTERNS)
+        is_date = any(re.search(pat, entry_lower) for pat in EXPERIENCE_YEARS_PATTERNS)
 
-        if is_role or is_date or (len(line) > 10 and not any(p in line_lower for p in ["student", "school", "college", "bachelor", "master"])):
-            professional_items.append(line)
+        if is_role or is_date or (len(entry) > 10 and not any(p in entry_lower for p in ["student", "school", "college", "bachelor", "master"])):
+            professional_items.append(entry)
+            title = entry.split("\n", 1)[0].strip()
+            desc = entry.split("\n", 1)[1].strip() if "\n" in entry else ""
             structured_items.append({
-                "title": line,
+                "title": title,
                 "organization": "Professional Experience",
                 "category": "professional",
-                "description": [line]
+                "description": [desc] if desc else [title]
             })
 
-    # 2. Check full text for virtual simulations if not caught in section
-    for pat in VIRTUAL_SIMULATION_KEYWORDS:
-        for match in re.finditer(pat, full_text_lower):
-            matched_line = match.group(0)
-            # Find surrounding snippet
-            start = max(0, match.start() - 30)
-            end = min(len(full_text), match.end() + 50)
-            snippet = full_text[start:end].replace("\n", " ").strip()
-            if snippet and snippet not in virtual_simulation_items and not any(snippet in s for s in virtual_simulation_items):
-                virtual_simulation_items.append(snippet)
-                structured_items.append({
-                    "title": snippet,
-                    "organization": "Virtual Job Simulation",
-                    "category": "virtual_simulation",
-                    "description": [snippet]
-                })
+    # 3. Check projects entries for virtual simulations
+    for entry in projects_lines:
+        check_and_add_simulation(entry)
+
+    # 4. Fallback search across full text lines/blocks if not yet detected in section entries
+    if not virtual_simulation_items:
+        lines = full_text.splitlines()
+        for idx, raw_line in enumerate(lines):
+            line_clean = clean_line(raw_line)
+            if any(re.search(pat, line_clean.lower()) for pat in VIRTUAL_SIMULATION_KEYWORDS):
+                # Collect continuation lines belonging to this block/bullet
+                block_lines = [line_clean]
+                for next_line in lines[idx + 1:]:
+                    if not next_line.strip() or is_bullet_line(next_line):
+                        break
+                    block_lines.append(clean_line(next_line))
+                full_entry = f"{block_lines[0]}\n{' '.join(block_lines[1:])}" if len(block_lines) > 1 else block_lines[0]
+                check_and_add_simulation(full_entry)
 
     has_prof = len(professional_items) > 0
     has_intern = len(internship_items) > 0
@@ -183,7 +209,7 @@ def classify_experience_text(
         explanation = "Candidate is a fresher with academic and project background."
 
     # Experience section should ONLY be shown if genuine professional or internship experience exists.
-    # Virtual simulation can be highlighted separately in profile / projects / certifications.
+    # Virtual simulation is highlighted separately and not counted as employment history.
     include_exp_section = has_prof or has_intern
 
     return {

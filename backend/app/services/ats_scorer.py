@@ -165,8 +165,8 @@ def calculate_ats_score(
 ) -> ATSScoreResult:
     """Compute deterministic and transparent ATS score between 0 and 100 with adaptive weighting."""
     # 1. Compute Individual Component Scores (0 - 100 each)
-    skills_score = int(round(match_results["skill_match_percentage"]))
-    keyword_score = int(round(match_results["keyword_match_percentage"]))
+    skills_score = round(match_results["skill_match_percentage"])
+    keyword_score = round(match_results["keyword_match_percentage"])
     projects_score = calculate_projects_score(projects, jd_text, raw_text)
     education_score = calculate_education_score(education, certifications)
     structure_score = calculate_structure_score(
@@ -213,7 +213,7 @@ def calculate_ats_score(
         )
         experience_score_val = None
 
-    overall_score = int(round(max(0.0, min(100.0, raw_total))))
+    overall_score = round(max(0.0, min(100.0, raw_total)))
 
     # Qualitative Rating
     has_jd = bool(jd_text and jd_text.strip())
