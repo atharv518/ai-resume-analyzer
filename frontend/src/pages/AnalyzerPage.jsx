@@ -7,17 +7,9 @@ import { submitResume } from "../services/api";
 
 function LoadingSpinner() {
   return (
-    <svg className="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg className="h-5 w-5 animate-spin text-on-primary-container" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-    </svg>
-  );
-}
-
-function SparklesIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-emerald-600" aria-hidden="true">
-      <path d="M12 3v3m0 12v3M3 12h3m12 0h3m-3.5-6.5l-2 2m-7 7l-2 2m0-11l2 2m7 7l2 2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -72,33 +64,43 @@ function AnalyzerPage({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="text-inverse-on-surface antialiased selection:bg-inverse-primary/20 selection:text-inverse-primary min-h-screen flex flex-col bg-on-surface">
       <Header />
-      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 lg:py-16">
-        <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3.5 py-1 text-xs font-semibold text-slate-700">
-            <SparklesIcon /> AI-Powered ATS Optimization
-          </span>
-          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
-            AI ATS Resume Analyzer
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            Upload your resume and optionally paste your target job description for instant ATS scoring, keyword gap detection, and actionable suggestions.
-          </p>
-        </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="mx-auto mt-8 max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8"
-        >
-          <div className="space-y-7">
+      {/* Main Content Canvas */}
+      <main className="flex-grow pt-[88px] pb-xl px-md md:px-lg flex justify-center w-full">
+        <div className="max-w-3xl w-full flex flex-col gap-xl">
+          {/* Header Section */}
+          <header className="flex flex-col items-center text-center gap-md mt-lg">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-variant/10 border border-inverse-primary/20 text-inverse-primary">
+              <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                auto_awesome
+              </span>
+              <span className="font-label-md text-label-md">AI-Powered ATS Optimization</span>
+            </div>
+            <h1 className="font-display-lg text-display-lg hidden md:block text-inverse-on-surface">
+              AI ATS Resume Analyzer
+            </h1>
+            <h1 className="font-headline-lg-mobile text-headline-lg-mobile md:hidden text-inverse-on-surface">
+              AI ATS Resume Analyzer
+            </h1>
+            <p className="font-body-lg text-body-lg text-outline-variant max-w-2xl">
+              Upload your resume and optionally paste your target job description for instant ATS scoring, keyword gap detection, and actionable suggestions.
+            </p>
+          </header>
+
+          {/* Upload Form Card */}
+          <form
+            onSubmit={handleSubmit}
+            className="glass-card rounded-xl p-lg flex flex-col gap-lg"
+          >
             <ResumeUpload
               file={resumeFile}
               onFileChange={handleFileChange}
               onSelectionStart={clearRequestState}
             />
 
-            <div className="border-t border-slate-200" />
+            <div className="h-[1px] w-full bg-outline-variant/20 my-1"></div>
 
             <JobDescription
               value={jobDescription}
@@ -110,46 +112,85 @@ function AnalyzerPage({
 
             {/* Analysis In-Progress Banner */}
             {isSubmitting && (
-              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 text-center">
-                <p className="text-sm font-semibold text-indigo-900">
-                  Analyzing resume{jobDescription?.trim() ? " against job description" : ""}...
+              <div className="rounded-xl border border-inverse-primary/30 bg-inverse-primary/10 p-md text-center backdrop-blur-sm">
+                <p className="font-title-lg text-title-lg text-inverse-primary">
+                  Analyzing resume{jobDescription?.trim() ? " against target job description" : ""}...
                 </p>
-                <p className="mt-1 text-xs text-indigo-700">
-                  Parsing text, analyzing technical skills, detecting experience, and calculating ATS score.
+                <p className="font-body-md text-body-md text-outline-variant text-xs mt-1">
+                  Parsing structure, evaluating skills match, and calculating ATS compatibility.
                 </p>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              {isSubmitting ? (
-                <>
-                  <LoadingSpinner />
-                  <span>Processing Analysis...</span>
-                </>
-              ) : (
-                <span>Analyze Resume</span>
-              )}
-            </button>
-          </div>
-        </form>
+            {/* Submit Action */}
+            <div className="pt-sm">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3.5 px-4 bg-primary text-on-primary font-title-lg text-title-lg rounded-xl shadow-md hover:bg-primary-container transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 flex justify-center items-center gap-2 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <LoadingSpinner />
+                    <span>Processing Analysis...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Analyze Resume</span>
+                    <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
 
-        <div className="mx-auto mt-8 max-w-2xl grid grid-cols-1 gap-4 sm:grid-cols-3 text-center">
-          <div className="rounded-xl border border-slate-200/80 bg-white p-4">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Deterministic ATS Scoring</h3>
-            <p className="mt-1 text-xs text-slate-500">Structured scoring calibrated for both freshers and experienced candidates.</p>
-          </div>
-          <div className="rounded-xl border border-slate-200/80 bg-white p-4">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Skill Gap Detection</h3>
-            <p className="mt-1 text-xs text-slate-500">Pinpoints missing keywords and required technologies from the job post.</p>
-          </div>
-          <div className="rounded-xl border border-slate-200/80 bg-white p-4">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Privacy-Preserving</h3>
-            <p className="mt-1 text-xs text-slate-500">Secure analysis processed within your dedicated environment.</p>
-          </div>
+          {/* Features Grid */}
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-md mt-md">
+            {/* Feature 1 */}
+            <div className="glass-card rounded-xl p-md flex flex-col gap-sm hover:-translate-y-1 transition-transform duration-300">
+              <div className="w-10 h-10 rounded-full bg-inverse-primary/20 flex items-center justify-center text-inverse-primary mb-1">
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  fact_check
+                </span>
+              </div>
+              <h3 className="font-title-lg text-title-lg text-inverse-on-surface">
+                Deterministic ATS Scoring
+              </h3>
+              <p className="font-body-md text-body-md text-outline-variant">
+                Our engine mimics leading Applicant Tracking Systems to provide an accurate, unbiased parse score.
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="glass-card rounded-xl p-md flex flex-col gap-sm hover:-translate-y-1 transition-transform duration-300">
+              <div className="w-10 h-10 rounded-full bg-tertiary-fixed/20 flex items-center justify-center text-tertiary-fixed mb-1">
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  troubleshoot
+                </span>
+              </div>
+              <h3 className="font-title-lg text-title-lg text-inverse-on-surface">
+                Skill Gap Detection
+              </h3>
+              <p className="font-body-md text-body-md text-outline-variant">
+                Pinpoints exact keywords and hard skills missing from your resume compared to the target role.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="glass-card rounded-xl p-md flex flex-col gap-sm hover:-translate-y-1 transition-transform duration-300">
+              <div className="w-10 h-10 rounded-full bg-secondary-fixed/20 flex items-center justify-center text-secondary-fixed mb-1">
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  shield_lock
+                </span>
+              </div>
+              <h3 className="font-title-lg text-title-lg text-inverse-on-surface">
+                Privacy-Preserving
+              </h3>
+              <p className="font-body-md text-body-md text-outline-variant">
+                Your data is analyzed securely in real-time and is never stored or used to train public models.
+              </p>
+            </div>
+          </section>
         </div>
       </main>
     </div>

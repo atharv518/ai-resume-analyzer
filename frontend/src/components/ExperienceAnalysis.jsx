@@ -1,22 +1,5 @@
 import React from "react";
 
-function BriefcaseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
-      <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-    </svg>
-  );
-}
-
-function VirtualBadgeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-    </svg>
-  );
-}
-
 function ExperienceAnalysis({ experienceAnalysis }) {
   if (!experienceAnalysis) return null;
 
@@ -32,35 +15,37 @@ function ExperienceAnalysis({ experienceAnalysis }) {
     explanation,
   } = experienceAnalysis;
 
-  // STRICT REQUIREMENT: If no professional/internship experience is detected, completely hide the section.
   if (!include_experience_section && !has_virtual_experience) {
     return null;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-md">
       {/* Genuine Professional / Internship Experience Section */}
       {include_experience_section && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-800">
-              <BriefcaseIcon />
-            </span>
+        <div className="glass-card rounded-xl p-lg">
+          <div className="flex items-center gap-md mb-md">
+            <div className="w-10 h-10 rounded-lg bg-inverse-primary/20 border border-inverse-primary/30 flex items-center justify-center text-inverse-primary">
+              <span className="material-symbols-outlined text-[22px]">work</span>
+            </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900">
+              <h3 className="font-title-lg text-title-lg text-white">
                 Professional & Internship Experience
               </h3>
-              <p className="text-xs text-slate-500">{explanation}</p>
+              {explanation && (
+                <p className="font-body-md text-body-md text-outline-variant text-xs">{explanation}</p>
+              )}
             </div>
           </div>
 
-          <div className="mt-6 space-y-4">
+          <div className="space-y-md">
             {professional_items && professional_items.length > 0 && (
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                  Work History ({professional_items.length})
+                <h4 className="font-label-md text-label-md text-secondary-fixed-dim uppercase tracking-wider mb-sm flex items-center gap-xs">
+                  <span className="material-symbols-outlined text-[16px]">business_center</span>
+                  <span>Work History ({professional_items.length})</span>
                 </h4>
-                <ul className="space-y-2.5">
+                <ul className="space-y-sm">
                   {professional_items.map((item, idx) => {
                     const parts = String(item).split("\n");
                     const title = parts[0].trim();
@@ -68,15 +53,12 @@ function ExperienceAnalysis({ experienceAnalysis }) {
                     return (
                       <li
                         key={idx}
-                        className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 text-sm leading-relaxed text-slate-800"
+                        className="rounded-lg bg-surface-variant/5 border border-outline-variant/20 p-md"
                       >
-                        <span className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-slate-900" />
-                        <div>
-                          <div className="font-semibold text-slate-900">{title}</div>
-                          {desc && (
-                            <p className="mt-1 text-xs text-slate-600 leading-relaxed">{desc}</p>
-                          )}
-                        </div>
+                        <div className="font-title-lg text-title-lg text-white text-sm font-semibold">{title}</div>
+                        {desc && (
+                          <p className="font-body-md text-body-md text-outline-variant text-xs mt-1 leading-relaxed">{desc}</p>
+                        )}
                       </li>
                     );
                   })}
@@ -85,11 +67,12 @@ function ExperienceAnalysis({ experienceAnalysis }) {
             )}
 
             {internship_items && internship_items.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                  Internships ({internship_items.length})
+              <div className="mt-md pt-sm border-t border-outline-variant/10">
+                <h4 className="font-label-md text-label-md text-tertiary-fixed-dim uppercase tracking-wider mb-sm flex items-center gap-xs">
+                  <span className="material-symbols-outlined text-[16px]">school</span>
+                  <span>Internships ({internship_items.length})</span>
                 </h4>
-                <ul className="space-y-2.5">
+                <ul className="space-y-sm">
                   {internship_items.map((item, idx) => {
                     const parts = String(item).split("\n");
                     const title = parts[0].trim();
@@ -97,15 +80,12 @@ function ExperienceAnalysis({ experienceAnalysis }) {
                     return (
                       <li
                         key={idx}
-                        className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-3.5 text-sm leading-relaxed text-slate-800"
+                        className="rounded-lg bg-tertiary-container/10 border border-tertiary-fixed-dim/20 p-md"
                       >
-                        <span className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-blue-600" />
-                        <div>
-                          <div className="font-semibold text-slate-900">{title}</div>
-                          {desc && (
-                            <p className="mt-1 text-xs text-slate-600 leading-relaxed">{desc}</p>
-                          )}
-                        </div>
+                        <div className="font-title-lg text-title-lg text-tertiary-fixed-dim text-sm font-semibold">{title}</div>
+                        {desc && (
+                          <p className="font-body-md text-body-md text-outline-variant text-xs mt-1 leading-relaxed">{desc}</p>
+                        )}
                       </li>
                     );
                   })}
@@ -118,26 +98,25 @@ function ExperienceAnalysis({ experienceAnalysis }) {
 
       {/* Separate Virtual Job Simulation Highlight */}
       {has_virtual_experience && virtual_simulation_items && virtual_simulation_items.length > 0 && (
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-6 shadow-sm sm:p-8">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
-                <VirtualBadgeIcon />
+        <div className="glass-card rounded-xl p-lg border-l-4 border-inverse-primary">
+          <div className="flex items-center gap-md mb-sm">
+            <div className="w-10 h-10 rounded-lg bg-inverse-primary/20 border border-inverse-primary/30 flex items-center justify-center text-inverse-primary">
+              <span className="material-symbols-outlined text-[22px]">workspace_premium</span>
+            </div>
+            <div>
+              <span className="px-2 py-0.5 rounded-full bg-inverse-primary/20 text-inverse-primary border border-inverse-primary/30 font-label-md text-label-md text-xs">
+                Virtual Experience / Job Simulation
               </span>
-              <div>
-                <span className="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-800">
-                  Virtual Experience / Job Simulation
-                </span>
-                <h3 className="mt-1 text-base font-bold text-slate-900">
-                  Experiential Program
-                </h3>
-              </div>
+              <h3 className="font-title-lg text-title-lg text-white mt-1">
+                Experiential Simulation Programs
+              </h3>
             </div>
           </div>
-          <p className="mt-3 text-xs leading-relaxed text-slate-600">
-            Recognized as a practical virtual simulation (e.g. Forage). This demonstrates self-directed skill learning and industry familiarity.
+          <p className="font-body-md text-body-md text-outline-variant text-xs mb-md leading-relaxed">
+            Recognized as practical virtual simulations (e.g. Forage). Demonstrates proactive self-directed learning and real-world task familiarity.
           </p>
-          <ul className="mt-4 space-y-3">
+
+          <ul className="space-y-sm">
             {virtual_simulation_items.map((item, idx) => {
               const isObj = typeof item === "object" && item !== null;
               const rawStr = isObj ? item.title || "" : String(item);
@@ -150,13 +129,13 @@ function ExperienceAnalysis({ experienceAnalysis }) {
               return (
                 <li
                   key={idx}
-                  className="rounded-xl border border-indigo-100 bg-white p-4 shadow-2xs text-slate-800"
+                  className="rounded-lg bg-surface-variant/5 border border-outline-variant/20 p-md"
                 >
-                  <div className="font-semibold text-slate-900 text-sm">
+                  <div className="font-title-lg text-title-lg text-white text-sm font-semibold">
                     {title}
                   </div>
                   {description && (
-                    <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
+                    <p className="font-body-md text-body-md text-outline-variant text-xs mt-1 leading-relaxed">
                       {description}
                     </p>
                   )}

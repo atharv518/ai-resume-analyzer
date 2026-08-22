@@ -5,13 +5,15 @@
 @layer base {
   html {
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-    background: #f8fafc;
+    background-color: #0b1c30;
+    color: #eaf1ff;
   }
 
   body {
     min-width: 320px;
     margin: 0;
-    color: #0f172a;
+    background-color: #0b1c30;
+    color: #eaf1ff;
   }
 
   button,
@@ -19,4 +21,43 @@
   input {
     font: inherit;
   }
+
+  /* Custom dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(11, 28, 48, 0.6);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(118, 117, 134, 0.4);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(192, 193, 255, 0.4);
+  }
 }
+
+.glass-card {
+  background-color: rgba(33, 49, 69, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(199, 196, 215, 0.2);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+}
+
+.drop-zone {
+  border: 2px dashed #767586;
+  transition: all 0.2s ease;
+}
+
+.drop-zone:hover,
+.drop-zone.dragover {
+  border-color: #c0c1ff;
+  background-color: rgba(192, 193, 255, 0.05);
+}
+

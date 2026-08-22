@@ -4,39 +4,44 @@ function JobDescription({ value, onChange, error }) {
   const charCount = value ? value.trim().length : 0;
 
   return (
-    <section aria-labelledby="job-description-heading">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <h2 id="job-description-heading" className="text-base font-semibold text-slate-900">
-            Target Job Description <span className="text-xs font-normal text-slate-500 ml-1.5">(Optional)</span>
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
-            Paste a target job description for role-specific ATS keyword matching, or leave empty for a general resume audit.
-          </p>
-        </div>
-        {charCount > 0 && (
-          <span className="hidden sm:inline-flex text-xs font-medium text-slate-400">
-            {charCount} characters
-          </span>
-        )}
+    <div className="flex flex-col gap-sm">
+      <div className="flex justify-between items-end mb-1">
+        <label
+          htmlFor="job-description"
+          className="font-label-md text-label-md text-outline-variant flex items-center gap-1.5"
+        >
+          <span>Target Job Description (Optional)</span>
+        </label>
+        <span className="font-label-md text-label-md text-outline-variant/70 text-xs">
+          {charCount} / 5000 chars
+        </span>
       </div>
+
       <textarea
+        id="job-description"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        rows={8}
-        placeholder="Optional: Paste the target job description here (e.g. 'Looking for a Python Developer with experience in FastAPI, Docker, PostgreSQL, AWS, and REST APIs...')..."
-        className={`w-full resize-y rounded-xl border bg-white px-4 py-3.5 text-sm leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+        rows={6}
+        placeholder="Paste the target job description here to calibrate ATS keyword matching, experience requirements, and skill gap detection..."
+        className={`w-full rounded-xl border bg-surface-variant/5 p-md font-body-md text-body-md text-inverse-on-surface focus:border-inverse-primary focus:ring-2 focus:ring-inverse-primary/20 transition-all placeholder:text-outline-variant/50 resize-y outline-none ${
           error
-            ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
-            : "border-slate-300 focus:border-slate-900 focus:ring-slate-900/15"
+            ? "border-error/50 ring-2 ring-error/20"
+            : "border-outline-variant/30 hover:border-outline-variant/50"
         }`}
       />
-      {error && (
-        <p className="mt-2 text-xs font-medium text-red-600" role="alert">
-          {error}
+
+      {error ? (
+        <p className="font-body-md text-body-md text-error text-xs flex items-center gap-1.5" role="alert">
+          <span className="material-symbols-outlined text-[14px]">error</span>
+          <span>{error}</span>
+        </p>
+      ) : (
+        <p className="font-body-md text-body-md text-outline-variant text-xs flex items-center gap-1">
+          <span className="material-symbols-outlined text-[14px] text-tertiary-fixed-dim">tips_and_updates</span>
+          <span>Providing a JD calibrates keyword density, hard skills matching, and role-fit analysis.</span>
         </p>
       )}
-    </section>
+    </div>
   );
 }
 

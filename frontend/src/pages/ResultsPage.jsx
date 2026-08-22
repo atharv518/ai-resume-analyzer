@@ -3,88 +3,40 @@ import Header from "../components/Header";
 import ScoreCard from "../components/ScoreCard";
 import ExperienceAnalysis from "../components/ExperienceAnalysis";
 
-function CheckCircleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4 text-emerald-600" aria-hidden="true">
-      <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function AlertCircleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-amber-600" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="12" strokeLinecap="round" />
-      <line x1="12" y1="16" x2="12.01" y2="16" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ArrowLeftIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
-      <path d="M19 12H5m7 7l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function SparklesIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 text-indigo-600" aria-hidden="true">
-      <path d="M12 3v3m0 12v3M3 12h3m12 0h3m-3.5-6.5l-2 2m-7 7l-2 2m0-11l2 2m7 7l2 2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function TargetIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 text-slate-700" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="6" />
-      <circle cx="12" cy="12" r="2" />
-    </svg>
-  );
-}
-
-function FolderGitIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 text-indigo-600" aria-hidden="true">
-      <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
-      <circle cx="12" cy="13" r="2" />
-    </svg>
-  );
-}
-
 function getRelevanceBadge(score) {
   const normalized = (score || "").toLowerCase();
   if (normalized.includes("high")) {
     return {
-      className: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      className: "bg-tertiary-container/30 text-tertiary-fixed-dim border-tertiary-fixed-dim/30",
       label: "High Relevance",
+      icon: "stars",
     };
   }
   if (normalized.includes("medium")) {
     return {
-      className: "bg-amber-100 text-amber-800 border-amber-200",
+      className: "bg-primary-container/30 text-inverse-primary border-inverse-primary/30",
       label: "Medium Relevance",
+      icon: "verified",
     };
   }
   if (normalized.includes("low")) {
     return {
-      className: "bg-slate-100 text-slate-700 border-slate-200",
+      className: "bg-[#78350f]/30 text-[#fde68a] border-[#fde68a]/30",
       label: "Low Relevance",
+      icon: "info",
     };
   }
   return {
-    className: "bg-rose-100 text-rose-800 border-rose-200",
+    className: "bg-error-container/20 text-error border-error/30",
     label: "Not Relevant",
+    icon: "warning",
   };
 }
 
 function ResultsPage({ result, onBack }) {
   const [showRawText, setShowRawText] = useState(false);
   const [recsTab, setRecsTab] = useState("all"); // "all" | "high" | "medium" | "low" | "ats"
+  const [copied, setCopied] = useState(false);
 
   if (!result) return null;
 
@@ -106,716 +58,721 @@ function ResultsPage({ result, onBack }) {
     low_priority: [],
   };
   const atsTips = aiInsights.ats_optimization_tips || [];
+  const resumeStrengths = aiInsights.resume_strengths || [];
   const resumeWeaknesses = aiInsights.resume_weaknesses || [];
   const jdAlignment = aiInsights.jd_alignment || {};
 
   const isAiPowered = aiInsights.is_ai_powered === true;
   const aiProvider = aiInsights.provider_used || "deterministic";
 
+  const handleCopyRawText = () => {
+    if (result.extracted_text) {
+      navigator.clipboard.writeText(result.extracted_text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="bg-on-surface text-inverse-on-surface min-h-screen flex flex-col antialiased">
       <Header />
 
-      <main className="mx-auto max-w-6xl px-5 py-8 sm:px-6 lg:py-10">
-        {/* Top Navigation & Status Bar */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <main className="flex-1 pt-[88px] pb-xl px-md md:px-lg lg:px-container-padding mx-auto w-full max-w-7xl">
+        {/* Sub-header Navigation & Status Row */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-lg gap-md">
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-2 self-start rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+            className="flex items-center gap-sm text-secondary-fixed-dim hover:text-inverse-primary transition-colors font-body-md text-body-md group cursor-pointer self-start md:self-auto"
           >
-            <ArrowLeftIcon />
+            <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">
+              arrow_back
+            </span>
             <span>Upload Another Resume</span>
           </button>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-sm">
             {/* AI Status Badge */}
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold border ${isAiPowered
-                ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                : "bg-slate-100 text-slate-700 border-slate-200"
-                }`}
-            >
-              {isAiPowered ? (
-                <>
-                  <SparklesIcon />
-                  <span>AI-Powered ({aiProvider.toUpperCase()})</span>
-                </>
-              ) : (
-                <span>⚡ Deterministic ATS Engine</span>
-              )}
+            <span className="px-sm py-xs rounded-full bg-inverse-surface border border-outline-variant/30 text-inverse-primary font-label-md text-label-md flex items-center gap-xs">
+              <span className="material-symbols-outlined text-[16px]">
+                {isAiPowered ? "auto_awesome" : "bolt"}
+              </span>
+              <span>{isAiPowered ? `AI-Powered (${aiProvider.toUpperCase()})` : "Deterministic Engine"}</span>
             </span>
 
             {/* Candidate Type Badge */}
-            <span
-              className={`rounded-lg px-3 py-1 text-xs font-semibold border ${isFresher
-                ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                : "bg-blue-100 text-blue-800 border-blue-200"
-                }`}
-            >
-              {isFresher ? "Fresher / Early Career" : "Experienced Professional"}
+            <span className={`px-sm py-xs rounded-full border font-label-md text-label-md flex items-center gap-xs ${
+              isFresher
+                ? "bg-tertiary-container/30 text-tertiary-fixed-dim border-tertiary-fixed-dim/30"
+                : "bg-primary-container/30 text-inverse-primary border-inverse-primary/30"
+            }`}>
+              <span className="material-symbols-outlined text-[16px]">person</span>
+              <span>{isFresher ? "Early Career / Fresher" : "Experienced Professional"}</span>
             </span>
 
-            {/* Job Description Provided / General Badge */}
-            {!result.job_description_provided ? (
-              <span className="rounded-lg bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1 text-xs font-semibold">
-                General Profile Audit
+            {/* Target JD Badge */}
+            <span className={`px-sm py-xs rounded-full border font-label-md text-label-md flex items-center gap-xs ${
+              result.job_description_provided
+                ? "bg-tertiary-container/30 text-tertiary-fixed-dim border-tertiary-fixed-dim/30"
+                : "bg-[#78350f]/30 text-[#fde68a] border-[#fde68a]/30"
+            }`}>
+              <span className="material-symbols-outlined text-[16px]">
+                {result.job_description_provided ? "check_circle" : "tune"}
               </span>
-            ) : (
-              <span className="rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1 text-xs font-semibold">
-                Target JD Evaluated
-              </span>
-            )}
+              <span>{result.job_description_provided ? "Target JD Evaluated" : "General Profile Audit"}</span>
+            </span>
           </div>
         </div>
 
-        {/* Candidate Profile Header Card */}
-        <div className="mb-8 overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs sm:p-7">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+        {/* Dashboard 2-Column Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+          {/* LEFT COLUMN: Profile, ATS Score Card, Strengths & Gaps (4 cols) */}
+          <div className="lg:col-span-4 flex flex-col gap-lg">
+            {/* Section 1: Candidate Profile Card */}
+            <div className="glass-card rounded-xl p-lg relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary-fixed-dim/10 rounded-bl-full -z-10 transition-transform group-hover:scale-110 pointer-events-none"></div>
+              <span className="font-label-md text-label-md text-outline-variant uppercase tracking-wider block mb-xs">
                 Candidate Profile
               </span>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              <h2 className="font-headline-md text-headline-md text-white mb-xs truncate" title={parsed.name || "Candidate Resume"}>
                 {parsed.name || "Candidate Resume"}
-              </h1>
+              </h2>
               {aiInsights?.role_fit_summary && (
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
+                <p className="font-body-md text-body-md text-secondary-fixed-dim mb-md leading-relaxed text-xs">
                   {aiInsights.role_fit_summary}
                 </p>
               )}
-            </div>
-
-            <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-4 sm:min-w-[240px] border border-slate-200/60">
-              <div className="text-xs">
-                <span className="font-semibold text-slate-600">Email: </span>
-                {parsed.email ? (
-                  <a href={`mailto:${parsed.email}`} className="text-blue-600 hover:underline">
-                    {parsed.email}
-                  </a>
-                ) : (
-                  <span className="text-slate-400 italic">Not detected</span>
-                )}
-              </div>
-              <div className="text-xs">
-                <span className="font-semibold text-slate-600">Phone: </span>
-                {parsed.phone ? (
-                  <span className="text-slate-700">{parsed.phone}</span>
-                ) : (
-                  <span className="text-slate-400 italic">Not detected</span>
-                )}
-              </div>
-              <div className="text-xs">
-                <span className="font-semibold text-slate-600">Document: </span>
-                <span className="text-slate-700">{result.filename}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-8">
-          {/* 1. AI Job Match Explanation Card (Why Your Resume Matches) */}
-          {matchExplanation && (
-            <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-white to-white p-6 shadow-2xs sm:p-7">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
-                  <SparklesIcon />
+              <div className="space-y-xs font-body-md text-body-md text-outline-variant text-xs pt-xs border-t border-outline-variant/15">
+                <div className="flex items-center gap-sm">
+                  <span className="material-symbols-outlined text-[16px] text-outline">mail</span>
+                  {parsed.email ? (
+                    <a href={`mailto:${parsed.email}`} className="text-inverse-primary hover:underline truncate">
+                      {parsed.email}
+                    </a>
+                  ) : (
+                    <span className="italic text-outline-variant/60">Not detected</span>
+                  )}
                 </div>
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-700">
-                    AI Job Match Explanation
+                <div className="flex items-center gap-sm">
+                  <span className="material-symbols-outlined text-[16px] text-outline">phone</span>
+                  <span>{parsed.phone || <span className="italic text-outline-variant/60">Not detected</span>}</span>
+                </div>
+                <div className="flex items-center gap-sm">
+                  <span className="material-symbols-outlined text-[16px] text-outline">description</span>
+                  <span className="truncate">{result.filename || "Resume"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: ATS Compatibility Gauge & Category Bars */}
+            {flags.SHOW_ATS_SCORE !== false && atsScore && (
+              <ScoreCard atsScore={atsScore} candidateType={candidateType} />
+            )}
+
+            {/* Section 3: Quick Analysis — Strengths & Gaps */}
+            {(flags.SHOW_RESUME_STRENGTHS !== false || resumeWeaknesses.length > 0) && (
+              <div className="glass-card rounded-xl p-lg">
+                <h3 className="font-title-lg text-title-lg text-white mb-md flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[20px] text-tertiary-fixed-dim">
+                    checklist
                   </span>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    Why Your Resume {result.job_description_provided ? "Matches This Position" : "Matches Industry Standards"}
-                  </h2>
-                </div>
-              </div>
-
-              <p className="mt-4 text-sm leading-relaxed text-slate-700 font-medium bg-white/80 rounded-xl p-4 border border-indigo-100/80">
-                {matchExplanation.overview}
-              </p>
-
-              <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
-                {/* Strongest Matching Areas */}
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                    <CheckCircleIcon /> {result.job_description_provided ? "Strongest Match Areas" : "Key Highlighted Strengths"}
-                  </h3>
-                  <ul className="mt-3 space-y-2">
-                    {matchExplanation.strongest_match_areas?.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-xs text-emerald-950 font-medium">
-                        <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-200 text-2xs font-bold text-emerald-800">
-                          ✓
-                        </span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Gaps / Profile Enhancements */}
-                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                    <AlertCircleIcon /> {result.job_description_provided ? "Key Gaps & Missing Requirements" : "Recommended Profile Enhancements"}
-                  </h3>
-                  <ul className="mt-3 space-y-2">
-                    {matchExplanation.biggest_gaps?.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-xs text-amber-950 font-medium">
-                        <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-200 text-2xs font-bold text-amber-800">
-                          !
-                        </span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Experience & Education Alignment Tags (Only when Target JD is provided) */}
-              {result.job_description_provided && (jdAlignment.experience_alignment || jdAlignment.education_alignment) && (
-                <div className="mt-4 flex flex-wrap gap-2 pt-2 border-t border-slate-200/60">
-                  {jdAlignment.experience_alignment && (
-                    <span className="inline-flex items-center rounded-lg bg-white px-3 py-1 text-xs font-medium text-slate-700 border border-slate-200">
-                      <strong>Experience Alignment:</strong>&nbsp;{jdAlignment.experience_alignment}
-                    </span>
-                  )}
-                  {jdAlignment.education_alignment && (
-                    <span className="inline-flex items-center rounded-lg bg-white px-3 py-1 text-xs font-medium text-slate-700 border border-slate-200">
-                      <strong>Education Alignment:</strong>&nbsp;{jdAlignment.education_alignment}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 2. Deterministic ATS Score & Breakdown (Feature Flag Protected) */}
-          {flags.SHOW_ATS_SCORE !== false && atsScore && (
-            <ScoreCard atsScore={atsScore} candidateType={candidateType} />
-          )}
-
-          {/* 3. Intelligent Skills Comparison & Keyword Gaps */}
-          {(flags.SHOW_SKILL_MATCH !== false || flags.SHOW_KEYWORD_ANALYSIS !== false) && skillComparison && (
-            <div className={`grid grid-cols-1 gap-6 ${result.job_description_provided ? "lg:grid-cols-2" : "lg:grid-cols-1"}`}>
-              {/* Matching / Identified Skills */}
-              {flags.SHOW_SKILL_MATCH !== false && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs sm:p-7">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
-                        <CheckCircleIcon />
-                      </div>
-                      <h3 className="text-base font-bold text-slate-900">
-                        {result.job_description_provided ? "Matching Skills" : "Identified Skills"} ({skillComparison.matching_skills?.length || 0})
-                      </h3>
-                    </div>
-                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                      {result.job_description_provided ? `${skillComparison.skill_match_percentage}% match` : "Verified in Resume"}
-                    </span>
+                  <span>Quick Analysis</span>
+                </h3>
+                <div className="space-y-md">
+                  {/* Strengths */}
+                  <div>
+                    <h4 className="font-label-md text-label-md text-tertiary-fixed-dim mb-sm uppercase tracking-wider flex items-center gap-xs">
+                      <span className="material-symbols-outlined text-[16px]">thumb_up</span>
+                      <span>Strengths ({resumeStrengths.length})</span>
+                    </h4>
+                    <ul className="space-y-sm">
+                      {resumeStrengths.map((strength, idx) => (
+                        <li key={idx} className="flex items-start gap-sm font-body-md text-body-md text-outline-variant text-xs leading-relaxed">
+                          <span className="material-symbols-outlined text-[16px] text-tertiary-fixed-dim mt-[1px] shrink-0">
+                            check
+                          </span>
+                          <span>{strength}</span>
+                        </li>
+                      ))}
+                      {resumeStrengths.length === 0 && (
+                        <li className="text-xs italic text-outline-variant/60">No specific strengths highlighted.</li>
+                      )}
+                    </ul>
                   </div>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                    {result.job_description_provided
-                      ? "Skills detected in your resume that directly align with the job description (with synonym recognition)."
-                      : "Core technical skills identified in your resume profile."}
-                  </p>
 
-                  {skillComparison.matching_skills && skillComparison.matching_skills.length > 0 ? (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {skillComparison.matching_skills.map((skill, idx) => {
+                  <div className="h-px bg-outline-variant/20 w-full"></div>
+
+                  {/* Gaps */}
+                  <div>
+                    <h4 className="font-label-md text-label-md text-error mb-sm uppercase tracking-wider flex items-center gap-xs">
+                      <span className="material-symbols-outlined text-[16px]">warning</span>
+                      <span>Gaps & Vulnerabilities ({resumeWeaknesses.length})</span>
+                    </h4>
+                    <ul className="space-y-sm">
+                      {resumeWeaknesses.map((weakness, idx) => (
+                        <li key={idx} className="flex items-start gap-sm font-body-md text-body-md text-outline-variant text-xs leading-relaxed">
+                          <span className="material-symbols-outlined text-[16px] text-error mt-[1px] shrink-0">
+                            priority_high
+                          </span>
+                          <span>{weakness}</span>
+                        </li>
+                      ))}
+                      {resumeWeaknesses.length === 0 && (
+                        <li className="text-xs italic text-outline-variant/60">No critical weaknesses detected.</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN: Insights, Skills, Projects, Recommendations, Experience, Education (8 cols) */}
+          <div className="lg:col-span-8 flex flex-col gap-lg">
+            {/* Section 4: AI Job Match Explanation */}
+            {matchExplanation && (
+              <div className="rounded-xl p-lg bg-inverse-surface border border-outline-variant/30 text-white shadow-md relative overflow-hidden">
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="flex items-center gap-sm mb-md relative z-10">
+                  <span className="material-symbols-outlined text-inverse-primary text-[24px]">
+                    auto_awesome
+                  </span>
+                  <div>
+                    <span className="font-label-md text-label-md text-inverse-primary uppercase tracking-wider block text-xs">
+                      AI Job Match Explanation
+                    </span>
+                    <h3 className="font-headline-sm text-headline-sm text-white">
+                      Why Your Resume {result.job_description_provided ? "Matches This Position" : "Matches Industry Benchmarks"}
+                    </h3>
+                  </div>
+                </div>
+
+                <p className="font-body-lg text-body-lg text-inverse-on-surface mb-md relative z-10 leading-relaxed text-sm bg-on-surface/40 p-md rounded-xl border border-outline-variant/20">
+                  {matchExplanation.overview}
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md relative z-10">
+                  {/* Strongest Matches */}
+                  <div className="rounded-lg bg-tertiary-container/10 border border-tertiary-fixed-dim/20 p-md">
+                    <h4 className="font-label-md text-label-md text-tertiary-fixed-dim uppercase tracking-wider mb-sm flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                      <span>Strongest Match Areas</span>
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {matchExplanation.strongest_match_areas?.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-1.5 text-xs text-inverse-on-surface">
+                          <span className="text-tertiary-fixed-dim font-bold">✓</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Biggest Gaps */}
+                  <div className="rounded-lg bg-[#78350f]/20 border border-[#fde68a]/20 p-md">
+                    <h4 className="font-label-md text-label-md text-[#fde68a] uppercase tracking-wider mb-sm flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]">flag</span>
+                      <span>Missing Requirements</span>
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {matchExplanation.biggest_gaps?.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-1.5 text-xs text-inverse-on-surface">
+                          <span className="text-[#fde68a] font-bold">!</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Alignment Tags */}
+                {result.job_description_provided && (jdAlignment.experience_alignment || jdAlignment.education_alignment) && (
+                  <div className="mt-md pt-sm border-t border-outline-variant/20 flex flex-wrap gap-sm relative z-10">
+                    {jdAlignment.experience_alignment && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-surface-variant/10 border border-outline-variant/20 text-outline-variant">
+                        <strong className="text-inverse-primary">Experience:</strong> {jdAlignment.experience_alignment}
+                      </span>
+                    )}
+                    {jdAlignment.education_alignment && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-surface-variant/10 border border-outline-variant/20 text-outline-variant">
+                        <strong className="text-inverse-primary">Education:</strong> {jdAlignment.education_alignment}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Section 5: Skills Comparison Grid (Matched & Missing) */}
+            {(flags.SHOW_SKILL_MATCH !== false || flags.SHOW_KEYWORD_ANALYSIS !== false) && skillComparison && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                {/* Matched Skills */}
+                <div className="glass-card rounded-xl p-lg border-l-4 border-tertiary-fixed-dim flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-sm">
+                      <h4 className="font-title-lg text-title-lg text-white flex items-center gap-xs">
+                        <span className="material-symbols-outlined text-tertiary-fixed-dim">verified</span>
+                        <span>{result.job_description_provided ? "Matched Skills" : "Identified Skills"} ({skillComparison.matching_skills?.length || 0})</span>
+                      </h4>
+                      {result.job_description_provided && (
+                        <span className="px-2 py-0.5 rounded-full bg-tertiary-container/30 text-tertiary-fixed-dim border border-tertiary-fixed-dim/30 font-label-md text-label-md text-xs">
+                          {skillComparison.skill_match_percentage}% match
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-body-md text-body-md text-outline-variant text-xs mb-md">
+                      {result.job_description_provided
+                        ? "Detected in your resume and matching the job requirements."
+                        : "Technical and domain skills detected on your resume."}
+                    </p>
+                    <div className="flex flex-wrap gap-xs">
+                      {skillComparison.matching_skills?.map((skill, idx) => {
                         const synonymInfo = skillComparison.synonym_matches?.[skill];
                         return (
                           <span
                             key={idx}
-                            title={synonymInfo ? `Recognized via: ${synonymInfo}` : ""}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-1.5 text-xs font-medium text-emerald-900"
+                            title={synonymInfo ? `Recognized via alias: ${synonymInfo}` : ""}
+                            className="px-sm py-xs bg-tertiary-container/30 text-tertiary-fixed-dim rounded-md font-label-md text-label-md border border-tertiary-fixed-dim/30 flex items-center gap-1"
                           >
-                            <CheckCircleIcon />
                             <span>{skill}</span>
                             {synonymInfo && (
-                              <span className="text-2xs text-emerald-700 bg-emerald-100/70 px-1 py-0.2 rounded font-normal">
+                              <span className="text-[10px] text-tertiary-fixed px-1 rounded bg-tertiary-container/50">
                                 alias
                               </span>
                             )}
                           </span>
                         );
                       })}
+                      {(!skillComparison.matching_skills || skillComparison.matching_skills.length === 0) && (
+                        <span className="text-xs text-outline-variant/60 italic">No skills detected.</span>
+                      )}
                     </div>
-                  ) : (
-                    <p className="mt-4 text-xs italic text-slate-400">
-                      No technical skills detected in the parsed text.
-                    </p>
-                  )}
+                  </div>
 
                   {/* Categorized Skills Breakdown */}
                   {skillComparison.categorized_skills && Object.keys(skillComparison.categorized_skills).length > 0 && (
-                    <div className="mt-6 border-t border-slate-100 pt-4 space-y-3">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                        Categorized Skill Breakdown
-                      </h4>
-                      <div className={`grid grid-cols-1 gap-2 ${result.job_description_provided ? "" : "sm:grid-cols-2"}`}>
-                        {Object.entries(skillComparison.categorized_skills).map(([catName, catSkills], cIdx) => (
-                          <div key={cIdx} className="text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                            <span className="font-semibold text-slate-700 block mb-0.5">{catName}: </span>
-                            <span className="text-slate-600 leading-relaxed">{catSkills.join(", ")}</span>
+                    <div className="mt-md pt-sm border-t border-outline-variant/15 space-y-1.5">
+                      <h5 className="font-label-md text-label-md text-outline-variant uppercase text-xs">Categories</h5>
+                      <div className="space-y-1">
+                        {Object.entries(skillComparison.categorized_skills).slice(0, 3).map(([cat, sks], cIdx) => (
+                          <div key={cIdx} className="text-xs text-outline-variant">
+                            <strong className="text-white">{cat}:</strong> {sks.join(", ")}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
+                </div>
 
-                  {/* Identified Domain Keywords (Shown during General Audit) */}
-                  {!result.job_description_provided && flags.SHOW_KEYWORD_ANALYSIS !== false && skillComparison.matching_keywords && skillComparison.matching_keywords.length > 0 && (
-                    <div className="mt-6 border-t border-slate-100 pt-4 space-y-3">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                        Identified Domain Keywords ({skillComparison.matching_keywords.length})
+                {/* Missing Skills (or Domain Keywords in general audit) */}
+                {result.job_description_provided ? (
+                  <div className="glass-card rounded-xl p-lg border-l-4 border-[#fbbf24] flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-sm">
+                        <h4 className="font-title-lg text-title-lg text-white flex items-center gap-xs">
+                          <span className="material-symbols-outlined text-[#fbbf24]">search</span>
+                          <span>Missing Skills ({skillComparison.missing_skills?.length || 0})</span>
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full bg-[#78350f]/30 text-[#fde68a] border border-[#fde68a]/30 font-label-md text-label-md text-xs">
+                          Required
+                        </span>
+                      </div>
+                      <p className="font-body-md text-body-md text-outline-variant text-xs mb-md">
+                        Required in the job description but missing from your resume.
+                      </p>
+                      <div className="flex flex-wrap gap-xs">
+                        {skillComparison.missing_skills?.map((skill, idx) => (
+                          <span
+                            key={idx}
+                            className="px-sm py-xs bg-[#78350f]/30 text-[#fde68a] rounded-md font-label-md text-label-md border border-[#fde68a]/30"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {(!skillComparison.missing_skills || skillComparison.missing_skills.length === 0) && (
+                          <span className="text-xs text-tertiary-fixed-dim font-medium">All target job skills present!</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-md pt-sm border-t border-outline-variant/15">
+                      <p className="text-[11px] text-[#fde68a]/90 leading-tight">
+                        <strong>Ethical ATS Tip:</strong> If you have hands-on experience with these skills, add them naturally into your bullet points.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="glass-card rounded-xl p-lg border-l-4 border-inverse-primary flex flex-col justify-between">
+                    <div>
+                      <h4 className="font-title-lg text-title-lg text-white mb-sm flex items-center gap-xs">
+                        <span className="material-symbols-outlined text-inverse-primary">label</span>
+                        <span>Identified Domain Keywords ({skillComparison.matching_keywords?.length || 0})</span>
                       </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {skillComparison.matching_keywords.map((kw, kIdx) => (
-                          <span key={kIdx} className="rounded bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-700">
+                      <p className="font-body-md text-body-md text-outline-variant text-xs mb-md">
+                        Key industry terminologies and concepts found in your text.
+                      </p>
+                      <div className="flex flex-wrap gap-xs">
+                        {skillComparison.matching_keywords?.map((kw, idx) => (
+                          <span
+                            key={idx}
+                            className="px-sm py-xs bg-inverse-primary/10 text-inverse-primary rounded-md font-label-md text-label-md border border-inverse-primary/20"
+                          >
                             {kw}
                           </span>
                         ))}
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-
-              {/* Missing / Gap Skills (ONLY rendered when a Job Description is provided) */}
-              {result.job_description_provided && flags.SHOW_SKILL_MATCH !== false && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs sm:p-7">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
-                        <AlertCircleIcon />
-                      </div>
-                      <h3 className="text-base font-bold text-slate-900">
-                        Missing / Gap Skills ({skillComparison.missing_skills?.length || 0})
-                      </h3>
-                    </div>
-                    <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-                      Important Keywords
-                    </span>
                   </div>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                    Required in the job posting but not detected on your resume.
-                  </p>
+                )}
+              </div>
+            )}
 
-                  {skillComparison.missing_skills && skillComparison.missing_skills.length > 0 ? (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {skillComparison.missing_skills.map((skill, idx) => (
-                        <span
+            {/* Section 6: AI Project Relevance Analysis (USER REQUESTED FEATURE) */}
+            {flags.SHOW_PROJECT_ANALYSIS !== false && projectEvals.length > 0 && (
+              <div className="glass-card rounded-xl p-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-md">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-lg bg-inverse-primary/20 border border-inverse-primary/30 flex items-center justify-center text-inverse-primary">
+                      <span className="material-symbols-outlined text-[20px]">folder_special</span>
+                    </div>
+                    <div>
+                      <h3 className="font-title-lg text-title-lg text-white">
+                        AI Project Relevance Analysis ({projectEvals.length})
+                      </h3>
+                      <p className="font-body-md text-body-md text-outline-variant text-xs">
+                        Evaluating practical alignment, tech stack depth, and business impact.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-inverse-surface border border-outline-variant/30 text-secondary-fixed-dim font-label-md text-label-md text-xs self-start sm:self-auto">
+                    {result.job_description_provided ? "Role-Specific Fit" : "Technical Merit"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  {projectEvals.map((proj, pIdx) => {
+                    const badge = getRelevanceBadge(proj.relevance_score);
+                    return (
+                      <div
+                        key={pIdx}
+                        className="rounded-xl bg-surface-variant/5 border border-outline-variant/20 p-md flex flex-col justify-between hover:border-inverse-primary/40 transition-colors"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h4 className="font-title-lg text-title-lg text-white text-sm font-semibold truncate" title={proj.project_title}>
+                              {proj.project_title}
+                            </h4>
+                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border flex items-center gap-1 shrink-0 ${badge.className}`}>
+                              <span className="material-symbols-outlined text-[13px]">{badge.icon}</span>
+                              <span>{badge.label}</span>
+                            </span>
+                          </div>
+
+                          {/* Technologies */}
+                          {proj.technologies_detected && proj.technologies_detected.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2.5">
+                              {proj.technologies_detected.map((t, tIdx) => (
+                                <span
+                                  key={tIdx}
+                                  className="px-1.5 py-0.5 bg-inverse-surface/80 text-secondary-fixed-dim rounded text-[11px] border border-outline-variant/20"
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Why it's relevant */}
+                          {proj.relevance_explanation && (
+                            <p className="font-body-md text-body-md text-outline-variant text-xs leading-relaxed mb-3">
+                              <strong className="text-white">Why Relevant:</strong> {proj.relevance_explanation}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Optimization Suggestion */}
+                        {proj.improvement_suggestions && (
+                          <div className="rounded-lg bg-inverse-primary/10 border border-inverse-primary/20 p-sm text-xs text-inverse-primary leading-relaxed">
+                            <strong className="text-white flex items-center gap-1 mb-0.5">
+                              <span className="material-symbols-outlined text-[14px]">lightbulb</span> Optimization Tip:
+                            </strong>
+                            <span>{proj.improvement_suggestions}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Section 7: Prioritized Recommendations Hub with Interactive Tabs */}
+            {flags.SHOW_AI_RECOMMENDATIONS !== false && (
+              <div className="glass-card rounded-xl p-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-md mb-md">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-lg bg-inverse-primary/20 border border-inverse-primary/30 flex items-center justify-center text-inverse-primary">
+                      <span className="material-symbols-outlined text-[20px]">target</span>
+                    </div>
+                    <div>
+                      <h3 className="font-title-lg text-title-lg text-white">
+                        Prioritized AI Recommendations
+                      </h3>
+                      <p className="font-body-md text-body-md text-outline-variant text-xs">
+                        Actionable steps ordered by impact on your parse score and recruiter impression.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tab Selector */}
+                  <div className="flex flex-wrap gap-1 bg-inverse-surface p-1 rounded-xl border border-outline-variant/20 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setRecsTab("all")}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                        recsTab === "all"
+                          ? "bg-inverse-primary text-on-primary-container shadow-sm"
+                          : "text-secondary-fixed-dim hover:text-white"
+                      }`}
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRecsTab("high")}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                        recsTab === "high"
+                          ? "bg-error text-white shadow-sm"
+                          : "text-secondary-fixed-dim hover:text-white"
+                      }`}
+                    >
+                      High ({prioritizedRecs.high_priority?.length || 0})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRecsTab("medium")}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                        recsTab === "medium"
+                          ? "bg-[#fde68a] text-[#78350f] shadow-sm"
+                          : "text-secondary-fixed-dim hover:text-white"
+                      }`}
+                    >
+                      Medium ({prioritizedRecs.medium_priority?.length || 0})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRecsTab("low")}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                        recsTab === "low"
+                          ? "bg-tertiary-fixed-dim text-on-tertiary-fixed shadow-sm"
+                          : "text-secondary-fixed-dim hover:text-white"
+                      }`}
+                    >
+                      Low ({prioritizedRecs.low_priority?.length || 0})
+                    </button>
+                    {atsTips.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setRecsTab("ats")}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                          recsTab === "ats"
+                            ? "bg-primary-container text-white shadow-sm"
+                            : "text-secondary-fixed-dim hover:text-white"
+                        }`}
+                      >
+                        ATS Tips ({atsTips.length})
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-sm">
+                  {/* High Priority */}
+                  {(recsTab === "all" || recsTab === "high") && prioritizedRecs.high_priority?.length > 0 && (
+                    <div className="space-y-1.5">
+                      <h4 className="font-label-md text-label-md text-error uppercase tracking-wider text-xs flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">error</span>
+                        <span>High Priority (Immediate ATS Impact)</span>
+                      </h4>
+                      {prioritizedRecs.high_priority.map((rec, idx) => (
+                        <div
                           key={idx}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-1.5 text-xs font-medium text-amber-900"
+                          className="flex items-start gap-2.5 rounded-lg bg-error-container/10 border border-error/20 p-sm text-xs text-inverse-on-surface leading-relaxed"
                         >
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                          {skill}
-                        </span>
+                          <span className="w-5 h-5 rounded-full bg-error/20 text-error flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
+                            {idx + 1}
+                          </span>
+                          <span>{rec}</span>
+                        </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="mt-4 text-xs font-medium text-emerald-600">
-                      Great job! All target job skills are represented.
-                    </p>
                   )}
 
-                  {/* Ethical Guidance Tip */}
-                  <div className="mt-5 rounded-xl bg-amber-50/80 p-3.5 text-xs leading-relaxed text-amber-900 border border-amber-200/60">
-                    <strong>Ethical ATS Guidance:</strong> If you possess practical experience with any of these missing skills, incorporate them naturally into your skills section and project bullet points. Never falsely claim technologies you have not used.
-                  </div>
-
-                  {/* Matching & Missing Domain Keywords */}
-                  {flags.SHOW_KEYWORD_ANALYSIS !== false && (
-                    <div className="mt-6 border-t border-slate-100 pt-4 space-y-3">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                        Domain Keyword Coverage ({skillComparison.matching_keywords?.length || 0} matched)
+                  {/* Medium Priority */}
+                  {(recsTab === "all" || recsTab === "medium") && prioritizedRecs.medium_priority?.length > 0 && (
+                    <div className="space-y-1.5 mt-sm">
+                      <h4 className="font-label-md text-label-md text-[#fde68a] uppercase tracking-wider text-xs flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">warning</span>
+                        <span>Medium Priority (Content & Phrasing)</span>
                       </h4>
-                      {skillComparison.matching_keywords && skillComparison.matching_keywords.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {skillComparison.matching_keywords.map((kw, kIdx) => (
-                            <span key={kIdx} className="rounded bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-700">
-                              {kw}
-                            </span>
-                          ))}
+                      {prioritizedRecs.medium_priority.map((rec, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-2.5 rounded-lg bg-[#78350f]/15 border border-[#fde68a]/20 p-sm text-xs text-inverse-on-surface leading-relaxed"
+                        >
+                          <span className="w-5 h-5 rounded-full bg-[#fde68a]/20 text-[#fde68a] flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
+                            {idx + 1}
+                          </span>
+                          <span>{rec}</span>
                         </div>
-                      )}
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Low Priority */}
+                  {(recsTab === "all" || recsTab === "low") && prioritizedRecs.low_priority?.length > 0 && (
+                    <div className="space-y-1.5 mt-sm">
+                      <h4 className="font-label-md text-label-md text-tertiary-fixed-dim uppercase tracking-wider text-xs flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                        <span>Low Priority (Polishing & Formatting)</span>
+                      </h4>
+                      {prioritizedRecs.low_priority.map((rec, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-2.5 rounded-lg bg-tertiary-container/10 border border-tertiary-fixed-dim/20 p-sm text-xs text-inverse-on-surface leading-relaxed"
+                        >
+                          <span className="w-5 h-5 rounded-full bg-tertiary-fixed-dim/20 text-tertiary-fixed-dim flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
+                            {idx + 1}
+                          </span>
+                          <span>{rec}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ATS Tips */}
+                  {(recsTab === "all" || recsTab === "ats") && atsTips.length > 0 && (
+                    <div className="space-y-1.5 mt-sm">
+                      <h4 className="font-label-md text-label-md text-inverse-primary uppercase tracking-wider text-xs flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">lightbulb</span>
+                        <span>ATS Optimization Best Practices</span>
+                      </h4>
+                      {atsTips.map((tip, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-2.5 rounded-lg bg-inverse-primary/10 border border-inverse-primary/20 p-sm text-xs text-inverse-on-surface leading-relaxed"
+                        >
+                          <span className="material-symbols-outlined text-inverse-primary text-[18px] shrink-0 mt-0.5">
+                            tips_and_updates
+                          </span>
+                          <span>{tip}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* 4. Strengths & Weaknesses Comparison Grid */}
-          {(flags.SHOW_RESUME_STRENGTHS !== false || resumeWeaknesses.length > 0) && (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {/* Strengths */}
-              {flags.SHOW_RESUME_STRENGTHS !== false && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs sm:p-7">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
-                      <SparklesIcon />
-                    </div>
-                    <h3 className="text-base font-bold text-slate-900">
-                      Resume Strengths
-                    </h3>
-                  </div>
-                  <ul className="mt-4 space-y-3">
-                    {aiInsights.resume_strengths?.map((strength, idx) => (
-                      <li key={idx} className="flex items-start gap-2.5 text-sm leading-relaxed text-slate-700">
-                        <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-2xs font-bold text-emerald-800">
-                          ✓
-                        </span>
-                        <span>{strength}</span>
+            {/* Section 8: Professional Experience Analysis */}
+            {flags.SHOW_EXPERIENCE_ANALYSIS !== false && (
+              <ExperienceAnalysis experienceAnalysis={expAnalysis} />
+            )}
+
+            {/* Section 9: Education & Certifications */}
+            <div className="glass-card rounded-xl p-lg space-y-md">
+              <div>
+                <h3 className="font-title-lg text-title-lg text-white mb-sm flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[20px] text-tertiary-fixed-dim">
+                    school
+                  </span>
+                  <span>Education ({parsed.education?.length || 0})</span>
+                </h3>
+                {parsed.education && parsed.education.length > 0 ? (
+                  <ul className="space-y-sm">
+                    {parsed.education.map((edu, idx) => (
+                      <li key={idx} className="rounded-lg bg-surface-variant/5 border border-outline-variant/20 p-sm text-xs text-inverse-on-surface leading-relaxed flex items-start gap-2">
+                        <span className="material-symbols-outlined text-[16px] text-outline-variant mt-0.5">account_balance</span>
+                        <span>{edu}</span>
                       </li>
                     ))}
                   </ul>
-                </div>
-              )}
+                ) : (
+                  <p className="text-xs italic text-outline-variant/60">No formal education detected.</p>
+                )}
+              </div>
 
-              {/* Weaknesses & Detected Vulnerabilities */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs sm:p-7">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-800">
-                    <AlertCircleIcon />
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    Areas for Improvement & Gaps
+              {parsed.certifications && parsed.certifications.length > 0 && (
+                <div className="pt-md border-t border-outline-variant/15">
+                  <h3 className="font-title-lg text-title-lg text-white mb-sm flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[20px] text-inverse-primary">
+                      verified_user
+                    </span>
+                    <span>Certifications ({parsed.certifications.length})</span>
                   </h3>
-                </div>
-                <ul className="mt-4 space-y-3">
-                  {resumeWeaknesses.map((weakness, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5 text-sm leading-relaxed text-slate-700">
-                      <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-100 text-2xs font-bold text-amber-800">
-                        !
-                      </span>
-                      <span>{weakness}</span>
-                    </li>
-                  ))}
-                  {resumeWeaknesses.length === 0 && (
-                    <li className="text-xs italic text-slate-400">
-                      No critical structural weaknesses detected.
-                    </li>
-                  )}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {/* 5. AI Project Relevance Analysis Section */}
-          {flags.SHOW_PROJECT_ANALYSIS !== false && projectEvals.length > 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs sm:p-7">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
-                    <FolderGitIcon />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900">
-                      AI Project Relevance Analysis ({projectEvals.length})
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      Evaluating each project's practical alignment, tech stack, and impact.
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-full self-start">
-                  {result.job_description_provided ? "Evaluated Against Target Role" : "General Technical Merit"}
-                </span>
-              </div>
-
-              <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
-                {projectEvals.map((proj, pIdx) => {
-                  const badge = getRelevanceBadge(proj.relevance_score);
-                  return (
-                    <div
-                      key={pIdx}
-                      className="rounded-xl border border-slate-200 bg-slate-50/50 p-5 transition hover:bg-slate-50/80 flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-start justify-between gap-3">
-                          <h4 className="text-sm font-bold text-slate-900">
-                            {proj.project_title}
-                          </h4>
-                          <span
-                            className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-2xs font-semibold ${badge.className}`}
-                          >
-                            {badge.label}
-                          </span>
-                        </div>
-
-                        {/* Technologies & Skills Demonstrated */}
-                        {proj.technologies_detected && proj.technologies_detected.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {proj.technologies_detected.map((t, tIdx) => (
-                              <span
-                                key={tIdx}
-                                className="rounded bg-white px-2 py-0.5 text-2xs font-medium text-slate-700 border border-slate-200/80"
-                              >
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Why it's relevant */}
-                        {proj.relevance_explanation && (
-                          <p className="mt-3 text-xs leading-relaxed text-slate-600">
-                            <strong>Why Relevant:</strong> {proj.relevance_explanation}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* What could be emphasized */}
-                      {proj.improvement_suggestions && (
-                        <div className="mt-4 rounded-lg bg-white p-3 text-2xs leading-relaxed text-indigo-900 border border-indigo-100">
-                          <strong>Optimization Tip:</strong> {proj.improvement_suggestions}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* 6. AI Prioritized Recommendations Hub */}
-          {flags.SHOW_AI_RECOMMENDATIONS !== false && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs sm:p-7">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-800">
-                    <TargetIcon />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900">
-                      Prioritized AI Recommendations
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      Actionable steps ordered by impact on your ATS score and recruiter impression.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Tab Switcher */}
-                <div className="flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1 self-start">
-                  <button
-                    type="button"
-                    onClick={() => setRecsTab("all")}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${recsTab === "all" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
-                      }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRecsTab("high")}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${recsTab === "high" ? "bg-rose-100 text-rose-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
-                      }`}
-                  >
-                    🔴 High ({prioritizedRecs.high_priority?.length || 0})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRecsTab("medium")}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${recsTab === "medium" ? "bg-amber-100 text-amber-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
-                      }`}
-                  >
-                    🟡 Medium ({prioritizedRecs.medium_priority?.length || 0})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRecsTab("low")}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${recsTab === "low" ? "bg-emerald-100 text-emerald-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
-                      }`}
-                  >
-                    🟢 Low ({prioritizedRecs.low_priority?.length || 0})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRecsTab("ats")}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${recsTab === "ats" ? "bg-indigo-100 text-indigo-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
-                      }`}
-                  >
-                    💡 ATS Tips ({atsTips.length})
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-4">
-                {/* High Priority Items */}
-                {(recsTab === "all" || recsTab === "high") && prioritizedRecs.high_priority?.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800 mb-2 flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-rose-500" /> High Priority (Immediate ATS Impact)
-                    </h4>
-                    <ul className="space-y-2.5">
-                      {prioritizedRecs.high_priority.map((rec, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50/40 p-3.5 text-sm leading-relaxed text-slate-800"
-                        >
-                          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-800">
-                            {idx + 1}
-                          </span>
-                          <span>{rec}</span>
+                  <ul className="space-y-sm">
+                    {parsed.certifications.map((cert, idx) => {
+                      const certStr = typeof cert === "string" ? cert : (cert.title || "");
+                      const parts = certStr.split("\n");
+                      const title = parts[0].trim();
+                      const desc = parts.slice(1).join(" ").trim();
+                      return (
+                        <li key={idx} className="rounded-lg bg-surface-variant/5 border border-outline-variant/20 p-sm text-xs text-inverse-on-surface leading-relaxed">
+                          <div className="font-semibold text-white">{title}</div>
+                          {desc && <p className="text-outline-variant text-[11px] mt-0.5">{desc}</p>}
                         </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Medium Priority Items */}
-                {(recsTab === "all" || recsTab === "medium") && prioritizedRecs.medium_priority?.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 mb-2 flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-amber-500" /> Medium Priority (Content & Phrasing)
-                    </h4>
-                    <ul className="space-y-2.5">
-                      {prioritizedRecs.medium_priority.map((rec, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50/40 p-3.5 text-sm leading-relaxed text-slate-800"
-                        >
-                          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-800">
-                            {idx + 1}
-                          </span>
-                          <span>{rec}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Low Priority Items */}
-                {(recsTab === "all" || recsTab === "low") && prioritizedRecs.low_priority?.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-2 flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" /> Low Priority (Styling & Polish)
-                    </h4>
-                    <ul className="space-y-2.5">
-                      {prioritizedRecs.low_priority.map((rec, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50/40 p-3.5 text-sm leading-relaxed text-slate-800"
-                        >
-                          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-800">
-                            {idx + 1}
-                          </span>
-                          <span>{rec}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* ATS Optimization Tips */}
-                {(recsTab === "all" || recsTab === "ats") && atsTips.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-800 mb-2 flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-indigo-500" /> ATS Optimization Best Practices
-                    </h4>
-                    <ul className="space-y-2.5">
-                      {atsTips.map((tip, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3.5 text-sm leading-relaxed text-slate-800"
-                        >
-                          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-800">
-                            💡
-                          </span>
-                          <span>{tip}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* 7. Conditional Professional Experience Section */}
-          {flags.SHOW_EXPERIENCE_ANALYSIS !== false && (
-            <ExperienceAnalysis experienceAnalysis={expAnalysis} />
-          )}
-
-          {/* 8. Education & Certifications */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs sm:p-7 space-y-6">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Education ({parsed.education?.length || 0})
-              </h3>
-              {parsed.education && parsed.education.length > 0 ? (
-                <ul className="mt-3 space-y-2 text-sm text-slate-700">
-                  {parsed.education.map((edu, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="text-slate-400">•</span>
-                      <span>{edu}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-xs italic text-slate-400">No education section detected.</p>
+                      );
+                    })}
+                  </ul>
+                </div>
               )}
             </div>
 
-            {parsed.certifications && parsed.certifications.length > 0 && (
-              <div className="border-t border-slate-200 pt-4">
-                <h3 className="text-base font-bold text-slate-900 mb-3">
-                  Certifications ({parsed.certifications.length})
-                </h3>
-                <ul className="space-y-2.5">
-                  {parsed.certifications.map((cert, idx) => {
-                    const certStr = typeof cert === "string" ? cert : (cert.title || "");
-                    const parts = certStr.split("\n");
-                    const title = parts[0].trim();
-                    const desc = parts.slice(1).join(" ").trim();
-                    return (
-                      <li key={idx} className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 text-sm text-slate-800">
-                        <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-2xs font-bold text-emerald-800">
-                          ✓
-                        </span>
-                        <div>
-                          <div className="font-semibold text-slate-900">{title}</div>
-                          {desc && (
-                            <p className="mt-1 text-xs text-slate-600 leading-relaxed">{desc}</p>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+            {/* Section 10: Extracted Plain Text Viewer */}
+            <div className="glass-card rounded-xl p-lg">
+              <div className="flex items-center justify-between mb-sm">
+                <div>
+                  <h3 className="font-title-lg text-title-lg text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[20px] text-outline">
+                      raw_on
+                    </span>
+                    <span>Extracted Resume Plaintext</span>
+                  </h3>
+                  <p className="font-body-md text-body-md text-outline-variant text-xs">
+                    Inspect the OCR/parser plain text used for scoring.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {showRawText && (
+                    <button
+                      type="button"
+                      onClick={handleCopyRawText}
+                      className="px-3 py-1.5 rounded-lg border border-outline-variant/30 bg-surface-variant/10 text-xs font-semibold text-inverse-primary hover:bg-surface-variant/20 transition-all flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">
+                        {copied ? "check" : "content_copy"}
+                      </span>
+                      <span>{copied ? "Copied!" : "Copy"}</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowRawText(!showRawText)}
+                    className="px-3 py-1.5 rounded-lg border border-outline-variant/30 bg-surface-variant/10 text-xs font-semibold text-inverse-on-surface hover:bg-surface-variant/20 transition-all"
+                  >
+                    {showRawText ? "Hide Plaintext" : "Show Plaintext"}
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* 9. Expandable Raw Text Viewer */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-600">
-                  Extracted Document Text
-                </h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Inspect the plain text extracted from your document for verification.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowRawText(!showRawText)}
-                className="rounded-lg border border-slate-300 bg-slate-50 px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-              >
-                {showRawText ? "Hide Raw Text" : "Show Raw Text"}
-              </button>
+              {showRawText && (
+                <div className="mt-md">
+                  <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-xl bg-on-surface/90 border border-outline-variant/20 p-md font-mono text-xs leading-relaxed text-inverse-on-surface/80">
+                    {result.extracted_text || "No text extracted."}
+                  </pre>
+                </div>
+              )}
             </div>
-
-            {showRawText && (
-              <div className="mt-4">
-                <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-xl bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100">
-                  {result.extracted_text || "No text extracted."}
-                </pre>
-              </div>
-            )}
           </div>
         </div>
       </main>

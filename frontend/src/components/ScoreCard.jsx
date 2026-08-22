@@ -3,91 +3,88 @@ import React from "react";
 function getRatingConfig(score, rating) {
   if (score >= 85) {
     return {
-      badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-300",
-      gaugeColor: "#10b981", // emerald-500
-      glowColor: "shadow-emerald-100",
+      badgeClass: "bg-tertiary-container/30 text-tertiary-fixed-dim border border-tertiary-fixed-dim/30",
+      gaugeColor: "#4edea3", // tertiary-fixed-dim / emerald
       label: rating || "Excellent Match",
     };
   }
   if (score >= 70) {
     return {
-      badgeClass: "bg-blue-100 text-blue-800 border-blue-300",
-      gaugeColor: "#3b82f6", // blue-500
-      glowColor: "shadow-blue-100",
+      badgeClass: "bg-primary-container/30 text-inverse-primary border border-inverse-primary/30",
+      gaugeColor: "#c0c1ff", // inverse-primary / indigo
       label: rating || "Strong Match",
     };
   }
   if (score >= 50) {
     return {
-      badgeClass: "bg-amber-100 text-amber-800 border-amber-300",
-      gaugeColor: "#f59e0b", // amber-500
-      glowColor: "shadow-amber-100",
+      badgeClass: "bg-[#78350f]/30 text-[#fde68a] border border-[#fde68a]/30",
+      gaugeColor: "#fbbf24", // amber
       label: rating || "Moderate Match",
     };
   }
   return {
-    badgeClass: "bg-rose-100 text-rose-800 border-rose-300",
-    gaugeColor: "#f43f5e", // rose-500
-    glowColor: "shadow-rose-100",
+    badgeClass: "bg-error-container/30 text-error-container border border-error/30",
+    gaugeColor: "#ba1a1a", // error
     label: rating || "Needs Improvement",
   };
 }
 
-function CircularGauge({ score, color }) {
-  const radius = 54;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
+function CircularGauge({ score, color, label }) {
+  const radius = 45;
+  const circumference = 2 * Math.PI * radius; // ~282.74
+  const strokeDashoffset = circumference - (Math.min(100, Math.max(0, score)) / 100) * circumference;
 
   return (
-    <div className="relative flex items-center justify-center">
-      <svg className="h-36 w-36 -rotate-90 transform" viewBox="0 0 128 128">
+    <div className="relative w-36 h-36 flex items-center justify-center">
+      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
         <circle
-          cx="64"
-          cy="64"
+          cx="50"
+          cy="50"
+          fill="none"
           r={radius}
-          stroke="#e2e8f0"
-          strokeWidth="10"
-          fill="transparent"
+          stroke="#3f465c"
+          strokeWidth="6"
         />
         <circle
-          cx="64"
-          cy="64"
+          cx="50"
+          cy="50"
+          fill="none"
           r={radius}
           stroke={color}
-          strokeWidth="10"
+          strokeWidth="8"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
-          fill="transparent"
           className="transition-all duration-1000 ease-out"
         />
       </svg>
-      <div className="absolute flex flex-col items-center justify-center text-center">
-        <span className="text-3xl font-extrabold tracking-tight text-slate-900">{score}</span>
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">/ 100</span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+        <span className="font-display-lg text-display-lg text-white tracking-tighter leading-none">
+          {score}<span className="text-base text-outline-variant font-normal">%</span>
+        </span>
+        <span className="font-label-md text-label-md text-tertiary-fixed-dim mt-1">
+          {label}
+        </span>
       </div>
     </div>
   );
 }
 
-function CategoryBar({ label, value, description }) {
+function CategoryBar({ label, value, colorClass = "bg-tertiary-fixed-dim" }) {
   const displayVal = value !== null && value !== undefined ? value : 0;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 transition hover:bg-slate-50">
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-semibold text-slate-800">{label}</span>
-        <span className="font-bold text-slate-900">{displayVal}%</span>
+    <div>
+      <div className="flex justify-between font-label-md text-label-md text-outline-variant mb-xs">
+        <span>{label}</span>
+        <span className="text-inverse-on-surface font-semibold">{displayVal}%</span>
       </div>
-      <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+      <div className="h-2 w-full bg-on-secondary-fixed-variant/40 rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full bg-slate-900 transition-all duration-700 ease-out"
+          className={`h-full rounded-full transition-all duration-700 ease-out ${colorClass}`}
           style={{ width: `${Math.max(4, Math.min(100, displayVal))}%` }}
         />
       </div>
-      {description && (
-        <p className="mt-2 text-xs text-slate-500">{description}</p>
-      )}
     </div>
   );
 }
@@ -99,70 +96,62 @@ function ScoreCard({ atsScore, candidateType }) {
   const config = getRatingConfig(overall_score, rating);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-      {/* Top Header & Gauge */}
-      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-center sm:text-left">
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              ATS Compatibility Analysis
-            </span>
-            <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${config.badgeClass}`}
-            >
-              {config.label}
-            </span>
-          </div>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-            Overall ATS Score
-          </h2>
-          <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-600">
-            {summary_feedback}
-          </p>
-        </div>
-
-        <div className="shrink-0">
-          <CircularGauge score={overall_score} color={config.gaugeColor} />
-        </div>
+    <div className="glass-card rounded-xl p-lg">
+      <div className="flex items-center justify-between mb-md">
+        <h3 className="font-title-lg text-title-lg text-white flex items-center gap-2">
+          <span className="material-symbols-outlined text-inverse-primary text-[20px]">
+            analytics
+          </span>
+          <span>ATS Compatibility</span>
+        </h3>
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${config.badgeClass}`}>
+          {config.label}
+        </span>
       </div>
 
-      <div className="my-6 border-t border-slate-200" />
+      <div className="flex flex-col items-center justify-center my-md">
+        <CircularGauge
+          score={overall_score}
+          color={config.gaugeColor}
+          label={rating || "Score"}
+        />
+      </div>
 
-      {/* Category Breakdown Grid */}
-      <div>
-        <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-          Scoring Category Breakdown
-        </h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {summary_feedback && (
+        <p className="font-body-md text-body-md text-outline-variant text-xs mb-md leading-relaxed text-center">
+          {summary_feedback}
+        </p>
+      )}
+
+      <div className="space-y-sm pt-sm border-t border-outline-variant/20">
+        <CategoryBar
+          label="Skills Match"
+          value={breakdown?.skills_score}
+          colorClass="bg-tertiary-fixed-dim"
+        />
+        <CategoryBar
+          label="Keyword Density"
+          value={breakdown?.keyword_score}
+          colorClass="bg-primary-fixed-dim"
+        />
+        <CategoryBar
+          label="Project Scope"
+          value={breakdown?.projects_score}
+          colorClass="bg-secondary-fixed"
+        />
+        {breakdown?.experience_score !== null && breakdown?.experience_score !== undefined ? (
           <CategoryBar
-            label="Skills Match"
-            value={breakdown.skills_score}
-            description="Core technical & soft skills alignment with role requirements"
+            label="Work Experience"
+            value={breakdown.experience_score}
+            colorClass="bg-tertiary-fixed"
           />
+        ) : (
           <CategoryBar
-            label="Keyword Match"
-            value={breakdown.keyword_score}
-            description="Domain terminology and keyword density coverage"
+            label="Formatting & Structure"
+            value={breakdown?.structure_score}
+            colorClass="bg-tertiary-fixed"
           />
-          <CategoryBar
-            label="Project Relevance"
-            value={breakdown.projects_score}
-            description="Practical application scope, stack, and measurable metrics"
-          />
-          {breakdown.experience_score !== null && breakdown.experience_score !== undefined ? (
-            <CategoryBar
-              label="Work Experience"
-              value={breakdown.experience_score}
-              description="Role seniority and commercial experience match"
-            />
-          ) : (
-            <CategoryBar
-              label="Resume Structure"
-              value={breakdown.structure_score}
-              description="Format clarity, contact completeness, and readability"
-            />
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

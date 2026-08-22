@@ -1,17 +1,23 @@
 import React from "react";
 
 function StatusMessage({ type = "error", children }) {
-  const styles = {
-    error: "border-red-200 bg-red-50 text-red-800",
-    success: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  };
+  const isError = type === "error";
 
   return (
     <div
-      role={type === "error" ? "alert" : "status"}
-      className={`rounded-xl border px-4 py-3 text-sm ${styles[type]}`}
+      role={isError ? "alert" : "status"}
+      className={`rounded-xl border p-md text-sm flex items-start gap-2.5 backdrop-blur-sm ${
+        isError
+          ? "border-error/40 bg-error-container/20 text-error-container"
+          : "border-tertiary-fixed-dim/40 bg-tertiary-container/20 text-tertiary-fixed-dim"
+      }`}
     >
-      {children}
+      <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">
+        {isError ? "error" : "check_circle"}
+      </span>
+      <div className="font-body-md text-body-md text-sm leading-relaxed">
+        {children}
+      </div>
     </div>
   );
 }
