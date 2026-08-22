@@ -200,11 +200,11 @@ def generate_fallback_analysis(
         "priority_improvements": priority_improvements,
     }
 
-    # 3. Project-by-Project Evaluation
+    # 3. Project-by-Project Evaluation (Capped at top 3 projects)
     parsed_structured_projects = extract_structured_projects(projects, raw_text)
     project_evaluations: list[ProjectEvaluation] = []
 
-    for proj in parsed_structured_projects:
+    for proj in parsed_structured_projects[:3]:
         title = proj["title"]
         desc = proj["description"]
         techs = proj["technologies"]
@@ -249,13 +249,15 @@ def generate_fallback_analysis(
     if not project_evaluations and projects:
         for p in projects[:3]:
             project_evaluations.append({
-                "project_title": p[:40],
+                "project_title": p.split("\n", 1)[0].split(" – ", 1)[0][:45],
                 "relevance_score": "Medium",
                 "technologies_detected": ["Software Development"],
                 "skills_demonstrated": ["Practical Implementation"],
                 "relevance_explanation": "Demonstrates hands-on engineering problem solving.",
                 "improvement_suggestions": "Structure with clear project title, tech stack list, and measurable bullet points.",
             })
+
+    project_evaluations = project_evaluations[:3]
 
     # 4. Prioritized Recommendations
     high_priority: list[str] = []

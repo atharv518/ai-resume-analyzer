@@ -64,70 +64,72 @@ function AnalyzerPage({
   };
 
   return (
-    <div className="text-inverse-on-surface antialiased selection:bg-inverse-primary/20 selection:text-inverse-primary min-h-screen flex flex-col bg-on-surface">
+    <div className="text-inverse-on-surface antialiased selection:bg-inverse-primary/20 selection:text-inverse-primary min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden flex flex-col bg-on-surface">
       <Header />
 
-      {/* Main Content Canvas */}
-      <main className="flex-grow pt-[88px] pb-xl px-md md:px-lg flex justify-center w-full">
-        <div className="max-w-3xl w-full flex flex-col gap-xl">
-          {/* Header Section */}
-          <header className="flex flex-col items-center text-center gap-md mt-lg">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-variant/10 border border-inverse-primary/20 text-inverse-primary">
-              <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+      {/* Main Content Canvas — Sleek Centered Rectangular Hero & Card */}
+      <main className="flex-1 pt-14 sm:pt-16 pb-4 sm:pb-6 px-4 sm:px-6 lg:px-8 flex flex-col justify-center items-center w-full max-w-5xl mx-auto overflow-hidden">
+        <div className="w-full flex flex-col gap-4 sm:gap-6 my-auto">
+          {/* Hero Header Section */}
+          <header className="flex flex-col items-center text-center gap-1.5 sm:gap-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-variant/10 border border-inverse-primary/20 text-inverse-primary text-xs sm:text-sm font-medium shadow-sm">
+              <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                 auto_awesome
               </span>
-              <span className="font-label-md text-label-md">AI-Powered ATS Optimization</span>
+              <span>AI-Powered ATS Optimization</span>
             </div>
-            <h1 className="font-display-lg text-display-lg hidden md:block text-inverse-on-surface">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight">
               AI ATS Resume Analyzer
             </h1>
-            <h1 className="font-headline-lg-mobile text-headline-lg-mobile md:hidden text-inverse-on-surface">
-              AI ATS Resume Analyzer
-            </h1>
-            <p className="font-body-lg text-body-lg text-outline-variant max-w-2xl">
-              Upload your resume and optionally paste your target job description for instant ATS scoring, keyword gap detection, and actionable suggestions.
+            <p className="text-xs sm:text-sm md:text-base text-outline-variant max-w-xl leading-relaxed">
+              Upload your resume and optional target job description for instant ATS scoring, skill matching, and actionable suggestions.
             </p>
           </header>
 
-          {/* Upload Form Card */}
+          {/* Upload Form Card — Spacious Rectangular Layout */}
           <form
             onSubmit={handleSubmit}
-            className="glass-card rounded-xl p-lg flex flex-col gap-lg"
+            className="glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-7 md:p-8 flex flex-col gap-4 sm:gap-5 w-full shadow-2xl border border-outline-variant/30"
           >
-            <ResumeUpload
-              file={resumeFile}
-              onFileChange={handleFileChange}
-              onSelectionStart={clearRequestState}
-            />
+            {/* 2-Column Grid on Tablet/Desktop */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-stretch">
+              <div className="flex flex-col">
+                <ResumeUpload
+                  file={resumeFile}
+                  onFileChange={handleFileChange}
+                  onSelectionStart={clearRequestState}
+                />
+              </div>
 
-            <div className="h-[1px] w-full bg-outline-variant/20 my-1"></div>
-
-            <JobDescription
-              value={jobDescription}
-              onChange={handleJdChange}
-              error={jdError}
-            />
+              <div className="flex flex-col">
+                <JobDescription
+                  value={jobDescription}
+                  onChange={handleJdChange}
+                  error={jdError}
+                />
+              </div>
+            </div>
 
             {error && <StatusMessage type="error">{error}</StatusMessage>}
 
             {/* Analysis In-Progress Banner */}
             {isSubmitting && (
-              <div className="rounded-xl border border-inverse-primary/30 bg-inverse-primary/10 p-md text-center backdrop-blur-sm">
-                <p className="font-title-lg text-title-lg text-inverse-primary">
+              <div className="rounded-xl border border-inverse-primary/30 bg-inverse-primary/10 p-3 text-center backdrop-blur-sm">
+                <p className="text-sm font-semibold text-inverse-primary">
                   Analyzing resume{jobDescription?.trim() ? " against target job description" : ""}...
                 </p>
-                <p className="font-body-md text-body-md text-outline-variant text-xs mt-1">
+                <p className="text-xs text-outline-variant mt-0.5">
                   Parsing structure, evaluating skills match, and calculating ATS compatibility.
                 </p>
               </div>
             )}
 
-            {/* Submit Action */}
-            <div className="pt-sm">
+            {/* Submit Action Button */}
+            <div>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 px-4 bg-primary text-on-primary font-title-lg text-title-lg rounded-xl shadow-md hover:bg-primary-container transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 flex justify-center items-center gap-2 cursor-pointer"
+                className="w-full py-3.5 sm:py-4 px-6 bg-primary text-on-primary text-sm sm:text-base font-bold rounded-xl shadow-lg hover:bg-primary-container hover:shadow-primary/25 transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 flex justify-center items-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -137,60 +139,30 @@ function AnalyzerPage({
                 ) : (
                   <>
                     <span>Analyze Resume</span>
-                    <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                    <span className="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_forward</span>
                   </>
                 )}
               </button>
             </div>
           </form>
 
-          {/* Features Grid */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-md mt-md">
-            {/* Feature 1 */}
-            <div className="glass-card rounded-xl p-md flex flex-col gap-sm hover:-translate-y-1 transition-transform duration-300">
-              <div className="w-10 h-10 rounded-full bg-inverse-primary/20 flex items-center justify-center text-inverse-primary mb-1">
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  fact_check
-                </span>
-              </div>
-              <h3 className="font-title-lg text-title-lg text-inverse-on-surface">
-                Deterministic ATS Scoring
-              </h3>
-              <p className="font-body-md text-body-md text-outline-variant">
-                Our engine mimics leading Applicant Tracking Systems to provide an accurate, unbiased parse score.
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="glass-card rounded-xl p-md flex flex-col gap-sm hover:-translate-y-1 transition-transform duration-300">
-              <div className="w-10 h-10 rounded-full bg-tertiary-fixed/20 flex items-center justify-center text-tertiary-fixed mb-1">
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  troubleshoot
-                </span>
-              </div>
-              <h3 className="font-title-lg text-title-lg text-inverse-on-surface">
-                Skill Gap Detection
-              </h3>
-              <p className="font-body-md text-body-md text-outline-variant">
-                Pinpoints exact keywords and hard skills missing from your resume compared to the target role.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="glass-card rounded-xl p-md flex flex-col gap-sm hover:-translate-y-1 transition-transform duration-300">
-              <div className="w-10 h-10 rounded-full bg-secondary-fixed/20 flex items-center justify-center text-secondary-fixed mb-1">
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  shield_lock
-                </span>
-              </div>
-              <h3 className="font-title-lg text-title-lg text-inverse-on-surface">
-                Privacy-Preserving
-              </h3>
-              <p className="font-body-md text-body-md text-outline-variant">
-                Your data is analyzed securely in real-time and is never stored or used to train public models.
-              </p>
-            </div>
-          </section>
+          {/* Feature Badges Strip */}
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-outline-variant pt-1">
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              <span className="material-symbols-outlined text-[16px] text-inverse-primary">fact_check</span>
+              <span>Deterministic ATS Scoring</span>
+            </span>
+            <span className="hidden sm:inline text-outline-variant/40">•</span>
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              <span className="material-symbols-outlined text-[16px] text-tertiary-fixed-dim">troubleshoot</span>
+              <span>Skill Gap Detection</span>
+            </span>
+            <span className="hidden sm:inline text-outline-variant/40">•</span>
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              <span className="material-symbols-outlined text-[16px] text-secondary-fixed-dim">shield_lock</span>
+              <span>100% In-Memory Privacy</span>
+            </span>
+          </div>
         </div>
       </main>
     </div>
@@ -198,5 +170,3 @@ function AnalyzerPage({
 }
 
 export default AnalyzerPage;
-
-

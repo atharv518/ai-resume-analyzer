@@ -79,12 +79,13 @@ function ResumeUpload({ file, onFileChange, onSelectionStart }) {
   };
 
   return (
-    <div className="flex flex-col gap-sm">
+    <div className="flex flex-col gap-2 h-full">
       <div className="flex justify-between items-baseline">
-        <h2 className="font-headline-sm text-headline-sm text-inverse-on-surface">
-          Upload your Resume
+        <h2 className="text-sm sm:text-base font-semibold text-inverse-on-surface flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-[18px] text-inverse-primary">upload_file</span>
+          <span>Resume Document</span>
         </h2>
-        <span className="font-body-md text-body-md text-outline-variant text-xs">
+        <span className="text-xs text-outline-variant">
           PDF, DOCX (Max 10MB)
         </span>
       </div>
@@ -100,37 +101,39 @@ function ResumeUpload({ file, onFileChange, onSelectionStart }) {
       />
 
       {file ? (
-        <div className="mt-2 rounded-xl border border-tertiary-fixed-dim/40 bg-surface-variant/10 p-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-md backdrop-blur-sm">
-          <div className="flex items-center gap-md min-w-0">
-            <div className="w-12 h-12 rounded-lg bg-tertiary-container/30 border border-tertiary-fixed-dim/40 flex items-center justify-center text-tertiary-fixed-dim shrink-0">
-              <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+        <div className="flex-1 min-h-[170px] sm:min-h-[195px] md:min-h-[210px] rounded-xl border border-tertiary-fixed-dim/40 bg-surface-variant/10 p-4 sm:p-6 flex flex-col justify-between gap-3 backdrop-blur-sm">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-tertiary-container/30 border border-tertiary-fixed-dim/40 flex items-center justify-center text-tertiary-fixed-dim shrink-0">
+              <span className="material-symbols-outlined text-[26px] sm:text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                 description
               </span>
             </div>
-            <div className="min-w-0">
-              <p className="font-title-lg text-title-lg text-white truncate" title={file.name}>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm sm:text-base font-bold text-white truncate" title={file.name}>
                 {file.name}
               </p>
-              <div className="flex items-center gap-sm mt-0.5">
-                <span className="font-body-md text-body-md text-outline-variant text-xs">
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-outline-variant">
                   {formatFileSize(file.size)}
                 </span>
                 <span className="h-1 w-1 rounded-full bg-outline-variant/60"></span>
-                <span className="font-label-md text-label-md text-tertiary-fixed-dim flex items-center gap-1 text-xs">
-                  <span className="material-symbols-outlined text-[14px]">check_circle</span> Ready to analyze
+                <span className="text-xs text-tertiary-fixed-dim flex items-center gap-1 font-semibold">
+                  <span className="material-symbols-outlined text-[14px]">check_circle</span> Ready for Analysis
                 </span>
               </div>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={openFilePicker}
-            className="px-4 py-2 bg-inverse-surface border border-outline-variant/30 text-secondary-fixed-dim hover:text-inverse-primary hover:border-inverse-primary/40 font-label-md text-label-md rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1.5 self-start sm:self-auto"
-          >
-            <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
-            <span>Replace File</span>
-          </button>
+          <div className="flex justify-end pt-2 border-t border-outline-variant/15">
+            <button
+              type="button"
+              onClick={openFilePicker}
+              className="px-4 py-2 bg-inverse-surface border border-outline-variant/30 text-secondary-fixed-dim hover:text-inverse-primary hover:border-inverse-primary/40 text-xs sm:text-sm font-medium rounded-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
+              <span>Change Resume</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div
@@ -138,7 +141,7 @@ function ResumeUpload({ file, onFileChange, onSelectionStart }) {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`drop-zone mt-2 rounded-xl p-xl flex flex-col items-center justify-center text-center gap-md cursor-pointer bg-surface-variant/5 ${
+          className={`drop-zone flex-1 min-h-[170px] sm:min-h-[195px] md:min-h-[210px] rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center text-center gap-2 sm:gap-2.5 cursor-pointer bg-surface-variant/5 hover:bg-surface-variant/10 transition-all ${
             isDragging ? "dragover" : ""
           }`}
           role="button"
@@ -150,15 +153,15 @@ function ResumeUpload({ file, onFileChange, onSelectionStart }) {
             }
           }}
         >
-          <div className="w-16 h-16 rounded-full bg-surface-variant/10 flex items-center justify-center text-inverse-primary mb-2 transition-transform duration-300 group-hover:scale-110">
-            <span className="material-symbols-outlined text-[34px]">cloud_upload</span>
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-surface-variant/10 border border-inverse-primary/20 flex items-center justify-center text-inverse-primary transition-transform duration-300 group-hover:scale-110 shadow-sm">
+            <span className="material-symbols-outlined text-[24px] sm:text-[26px]">cloud_upload</span>
           </div>
           <div>
-            <p className="font-title-lg text-title-lg text-inverse-on-surface mb-1">
-              {isDragging ? "Drop your resume right here" : "Drag and drop your file here"}
+            <p className="text-sm sm:text-base font-semibold text-inverse-on-surface">
+              {isDragging ? "Drop resume here" : "Drag & drop your resume here"}
             </p>
-            <p className="font-body-md text-body-md text-outline-variant">
-              or browse from your device
+            <p className="text-xs text-outline-variant mt-0.5">
+              or click to browse from device (PDF or DOCX)
             </p>
           </div>
           <button
@@ -167,17 +170,17 @@ function ResumeUpload({ file, onFileChange, onSelectionStart }) {
               e.stopPropagation();
               openFilePicker();
             }}
-            className="mt-2 px-5 py-2.5 bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:bg-primary-container transition-all active:scale-95 flex items-center gap-2 shadow-sm"
+            className="mt-1 px-4 py-2 bg-primary text-on-primary text-xs sm:text-sm font-semibold rounded-lg hover:bg-primary-container transition-all active:scale-95 flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[18px]">folder_open</span>
+            <span className="material-symbols-outlined text-[16px]">folder_open</span>
             <span>Browse Files</span>
           </button>
         </div>
       )}
 
       {validationError && (
-        <div className="mt-2 rounded-lg bg-error-container/20 border border-error/30 p-sm text-error font-body-md text-body-md text-xs flex items-center gap-2">
-          <span className="material-symbols-outlined text-[16px]">error</span>
+        <div className="mt-1 rounded-lg bg-error-container/20 border border-error/30 p-2 text-error text-xs flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-[15px]">error</span>
           <span>{validationError}</span>
         </div>
       )}
