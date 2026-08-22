@@ -178,10 +178,20 @@ def generate_fallback_analysis(
         )
 
     strongest_match_areas = matching_skills[:5] if matching_skills else ["Clean structural layout", "Document readability"]
-    biggest_gaps = missing_skills[:5] if missing_skills else ["Paste a target Job Description to identify specific keyword gaps."]
-    priority_improvements = [
-        f"If you have hands-on experience with {s}, incorporate it into your skills and project bullets." for s in missing_skills[:2]
-    ] if missing_skills else ["Quantify your project outcomes with measurable business metrics (%, ms, throughput)."]
+    if has_jd:
+        biggest_gaps = missing_skills[:5] if missing_skills else ["No critical skill gaps detected against this job description."]
+        priority_improvements = [
+            f"If you have hands-on experience with {s}, incorporate it into your skills and project bullets." for s in missing_skills[:2]
+        ] if missing_skills else ["Quantify your project outcomes with measurable business metrics (%, ms, throughput)."]
+    else:
+        biggest_gaps = [
+            "Quantify bullet points with measurable impact metrics (e.g., latency, throughput, scale).",
+            "Include active links to public repositories, live demos, or portfolio items.",
+        ]
+        priority_improvements = [
+            "Quantify your project outcomes with measurable engineering metrics (%, ms, users, throughput).",
+            "Organize technical proficiencies into structured categories (Languages, Frameworks, Cloud/DevOps).",
+        ]
 
     match_explanation: MatchExplanation = {
         "overview": match_overview,
@@ -284,7 +294,7 @@ def generate_fallback_analysis(
     tech_assessment: TechnicalSkillAssessment = {
         "depth_rating": "Strong Technical Foundation" if len(skills) >= 6 else "Developing Technical Stack",
         "strengths": matching_skills[:5] if matching_skills else skills[:5],
-        "gaps": missing_skills[:4] if missing_skills else ["No major skill gaps identified for general profile."],
+        "gaps": (missing_skills[:4] if missing_skills else ["No major skill gaps identified for this role."]) if has_jd else [],
     }
 
     exp_assessment: ExperienceAssessment = {

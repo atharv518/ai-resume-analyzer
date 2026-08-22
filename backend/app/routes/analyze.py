@@ -9,6 +9,7 @@ from app.services.experience_detector import classify_experience_text
 from app.services.extractor import extract_resume_text
 from app.services.job_matcher import compare_resume_with_jd
 from app.services.parser import parse_resume
+from app.services.resume_validator import validate_resume_content
 from app.utils.file_validation import validate_resume_file
 
 
@@ -164,17 +165,20 @@ async def analyze_resume(
     # 3. Extract text from PDF or DOCX
     extracted_text = extract_resume_text(extension, file_bytes)
 
-    # 4. Parse basic fields and sections
+    # 4. Validate resume content (Deterministic lightweight signal validation)
+    validate_resume_content(extracted_text)
+
+    # 5. Parse basic fields and sections
     parsed_data = parse_resume(extracted_text)
 
-    # 5. Compare resume with Job Description (Skills & Keywords with Synonyms)
+    # 6. Compare resume with Job Description (Skills & Keywords with Synonyms)
     match_results = compare_resume_with_jd(
         resume_text=extracted_text,
         resume_skills=parsed_data["skills"],
         jd_text=clean_jd,
     )
 
-    # 6. Classify Experience & Candidate Type
+    # 7. Classify Experience & Candidate Type
     exp_classification = classify_experience_text(
         experience_lines=parsed_data["experience"],
         projects_lines=parsed_data["projects"],
@@ -182,7 +186,7 @@ async def analyze_resume(
         certifications_lines=parsed_data["certifications"],
     )
 
-    # 7. Compute deterministic ATS Score
+    # 8. Compute deterministic ATS Score
     ats_score_result = calculate_ats_score(
         name=parsed_data["name"],
         email=parsed_data["email"],
@@ -198,7 +202,7 @@ async def analyze_resume(
         exp_classification=exp_classification,
     )
 
-    # 8. AI Insights & Actionable Recommendations (Multi-provider / Deterministic Fallback)
+    # 9. AI Insights & Actionable Recommendations (Multi-provider / Deterministic Fallback)
     ai_insights_result = await analyze_with_ai(
         name=parsed_data["name"],
         skills=parsed_data["skills"],
@@ -212,7 +216,7 @@ async def analyze_resume(
         exp_classification=exp_classification,
     )
 
-    # 9. Apply Centralized Feature Flags
+    # 10. Apply Centralized Feature Flags
     flags = get_feature_flags()
 
     # ATS Score component
@@ -225,13 +229,13 @@ async def analyze_resume(
             summary_feedback=ats_score_result["summary_feedback"],
         )
 
-    # Skill Comparison component
+    # Skill Comparison component (When no JD is provided, missing skills and keyword gaps are omitted)
     skill_comparison_payload = None
     if flags.get("SHOW_SKILL_MATCH", True) or flags.get("SHOW_KEYWORD_ANALYSIS", True):
         matching_skills = match_results["matching_skills"] if flags.get("SHOW_SKILL_MATCH", True) else []
-        missing_skills = match_results["missing_skills"] if flags.get("SHOW_SKILL_MATCH", True) else []
+        missing_skills = (match_results["missing_skills"] if has_jd else []) if flags.get("SHOW_SKILL_MATCH", True) else []
         matching_kw = match_results["matching_keywords"] if flags.get("SHOW_KEYWORD_ANALYSIS", True) else []
-        missing_kw = match_results["missing_keywords"] if flags.get("SHOW_KEYWORD_ANALYSIS", True) else []
+        missing_kw = (match_results["missing_keywords"] if has_jd else []) if flags.get("SHOW_KEYWORD_ANALYSIS", True) else []
 
         skill_comparison_payload = SkillComparison(
             matching_skills=matching_skills,
@@ -240,7 +244,7 @@ async def analyze_resume(
             missing_keywords=missing_kw,
             skill_match_percentage=match_results["skill_match_percentage"],
             keyword_match_percentage=match_results["keyword_match_percentage"],
-            synonym_matches=match_results.get("synonym_matches", {}),
+            synonym_matches=match_results.get("synonym_matches", {}) if has_jd else {},
             categorized_skills=match_results.get("categorized_skills", {}),
         )
 

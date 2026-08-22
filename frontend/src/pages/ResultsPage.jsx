@@ -239,7 +239,7 @@ function ResultsPage({ result, onBack }) {
                 {/* Strongest Matching Areas */}
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                    <CheckCircleIcon /> Strongest Match Areas
+                    <CheckCircleIcon /> {result.job_description_provided ? "Strongest Match Areas" : "Key Highlighted Strengths"}
                   </h3>
                   <ul className="mt-3 space-y-2">
                     {matchExplanation.strongest_match_areas?.map((item, idx) => (
@@ -253,10 +253,10 @@ function ResultsPage({ result, onBack }) {
                   </ul>
                 </div>
 
-                {/* Biggest Gaps / Missing Requirements */}
+                {/* Gaps / Profile Enhancements */}
                 <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                    <AlertCircleIcon /> Key Gaps & Missing Requirements
+                    <AlertCircleIcon /> {result.job_description_provided ? "Key Gaps & Missing Requirements" : "Recommended Profile Enhancements"}
                   </h3>
                   <ul className="mt-3 space-y-2">
                     {matchExplanation.biggest_gaps?.map((item, idx) => (
@@ -271,8 +271,8 @@ function ResultsPage({ result, onBack }) {
                 </div>
               </div>
 
-              {/* Experience & Education Alignment Tags */}
-              {(jdAlignment.experience_alignment || jdAlignment.education_alignment) && (
+              {/* Experience & Education Alignment Tags (Only when Target JD is provided) */}
+              {result.job_description_provided && (jdAlignment.experience_alignment || jdAlignment.education_alignment) && (
                 <div className="mt-4 flex flex-wrap gap-2 pt-2 border-t border-slate-200/60">
                   {jdAlignment.experience_alignment && (
                     <span className="inline-flex items-center rounded-lg bg-white px-3 py-1 text-xs font-medium text-slate-700 border border-slate-200">
@@ -296,8 +296,8 @@ function ResultsPage({ result, onBack }) {
 
           {/* 3. Intelligent Skills Comparison & Keyword Gaps */}
           {(flags.SHOW_SKILL_MATCH !== false || flags.SHOW_KEYWORD_ANALYSIS !== false) && skillComparison && (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {/* Matching Skills */}
+            <div className={`grid grid-cols-1 gap-6 ${result.job_description_provided ? "lg:grid-cols-2" : "lg:grid-cols-1"}`}>
+              {/* Matching / Identified Skills */}
               {flags.SHOW_SKILL_MATCH !== false && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs sm:p-7">
                   <div className="flex items-center justify-between">
@@ -352,12 +352,28 @@ function ResultsPage({ result, onBack }) {
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
                         Categorized Skill Breakdown
                       </h4>
-                      <div className="space-y-2">
+                      <div className={`grid grid-cols-1 gap-2 ${result.job_description_provided ? "" : "sm:grid-cols-2"}`}>
                         {Object.entries(skillComparison.categorized_skills).map(([catName, catSkills], cIdx) => (
-                          <div key={cIdx} className="text-xs">
-                            <span className="font-semibold text-slate-700">{catName}: </span>
-                            <span className="text-slate-600">{catSkills.join(", ")}</span>
+                          <div key={cIdx} className="text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                            <span className="font-semibold text-slate-700 block mb-0.5">{catName}: </span>
+                            <span className="text-slate-600 leading-relaxed">{catSkills.join(", ")}</span>
                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Identified Domain Keywords (Shown during General Audit) */}
+                  {!result.job_description_provided && flags.SHOW_KEYWORD_ANALYSIS !== false && skillComparison.matching_keywords && skillComparison.matching_keywords.length > 0 && (
+                    <div className="mt-6 border-t border-slate-100 pt-4 space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Identified Domain Keywords ({skillComparison.matching_keywords.length})
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {skillComparison.matching_keywords.map((kw, kIdx) => (
+                          <span key={kIdx} className="rounded bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-700">
+                            {kw}
+                          </span>
                         ))}
                       </div>
                     </div>
@@ -365,8 +381,8 @@ function ResultsPage({ result, onBack }) {
                 </div>
               )}
 
-              {/* Missing / Gap Skills */}
-              {flags.SHOW_SKILL_MATCH !== false && (
+              {/* Missing / Gap Skills (ONLY rendered when a Job Description is provided) */}
+              {result.job_description_provided && flags.SHOW_SKILL_MATCH !== false && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs sm:p-7">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -378,13 +394,11 @@ function ResultsPage({ result, onBack }) {
                       </h3>
                     </div>
                     <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-                      {result.job_description_provided ? "Important Keywords" : "Target JD Required"}
+                      Important Keywords
                     </span>
                   </div>
                   <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                    {result.job_description_provided
-                      ? "Required in the job posting but not detected on your resume."
-                      : "Add a target job description to discover exact skill and keyword gaps."}
+                    Required in the job posting but not detected on your resume.
                   </p>
 
                   {skillComparison.missing_skills && skillComparison.missing_skills.length > 0 ? (
@@ -401,9 +415,7 @@ function ResultsPage({ result, onBack }) {
                     </div>
                   ) : (
                     <p className="mt-4 text-xs font-medium text-emerald-600">
-                      {result.job_description_provided
-                        ? "Great job! All target job skills are represented."
-                        : "No skill gaps found for general audit. Paste a JD for targeted gap analysis."}
+                      Great job! All target job skills are represented.
                     </p>
                   )}
 
