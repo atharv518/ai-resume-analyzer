@@ -1,4 +1,5 @@
 import re
+from typing import Any
 from fastapi import HTTPException, status
 
 from app.services.parser import (
@@ -6,190 +7,309 @@ from app.services.parser import (
     SECTION_HEADINGS,
     clean_line,
     extract_email,
+    extract_name,
     extract_phone,
+    is_bullet_line,
 )
 
-# Negative indicator terms commonly found in invoices, receipts, and non-resume documents
-NON_RESUME_INDICATORS = [
-    r"\binvoice\b",
-    r"\btax invoice\b",
-    r"\bbill to\b",
-    r"\bamount due\b",
-    r"\bbalance due\b",
-    r"\bsubtotal\b",
-    r"\bpayment terms\b",
-    r"\bremittance advice\b",
-    r"\bpurchase order\b",
-    r"\breceipt\b",
+# Academic, Lab Experiment, Question Paper, and Assignment negative patterns (Pattern, Weight)
+ACADEMIC_LAB_PATTERNS: list[tuple[str, int]] = [
+    # Lab experiment headers and instructions
+    (r"\bexperiment\s*(?:no\.?|number|#)?\s*:\s*\d+", 4),
+    (r"\b(?:lab\s+)?experiment\s+(?:writing\s+)?instructions\b", 4),
+    (r"\b(?:aim|problem\s+statement)\s*:", 3),
+    (r"\btheory\s*:\s*\[?", 3),
+    (r"\bperformance\s*:\s*\[?", 3),
+    (r"\bapparatus\s*(?:required)?\s*:", 3),
+    (r"\bprocedure\s*:", 3),
+    (r"\bconclusion\s*:\s*(?:thus\s+we\s+have|hence\s+verified|hence\s+proved|in\s+this\s+experiment)", 4),
+    (r"\b(?:go\s+to|check\s+out)\s+(?:git\s*hub|github)\s+repository\b", 3),
+    (r"\b(?:write|check)\s+the\s+output\s+of\s+(?:the\s+)?execution\b", 3),
+    (r"\bbased\s+slide\s+shared\s+on\s+lms\b", 3),
+    (r"\bdepartment\s+of\s+(?:information\s+technology|computer|electronics|mechanical|civil|electrical|science|engineering|physics|chemistry|mathematics)\b", 3),
+    (r"\b(?:affiliated\s+to|approved\s+by\s+a\.?i\.?c\.?t\.?e|shaikshanik\s+sankul)\b", 3),
+    
+    # Assignments, Homework, and Question Papers
+    (r"\b(?:question\s+paper|assignment\s*(?:no\.?|number|#)?\s*:\s*\d+)\b", 4),
+    (r"\b(?:roll\s*no\.?\s*:|prn\s*:|submitted\s+by\s*:|submitted\s+to\s*:)\b", 3),
+    (r"\b(?:course\s+code|subject\s+code|max\s+marks|academic\s+year\s*:|semester\s*(?:i|ii|iii|iv|v|vi|vii|viii|\d+))\b", 3),
+    (r"\b(?:what\s+is\s+a?\s*[\w\s]{2,30}\?|what\s+do\s+you\s+mean\s+by|explain\s+(?:the\s+)?following\s+points)\b", 3),
+    (r"\banswer\s+(?:all\s+)?(?:the\s+)?following\s+questions?\b", 4),
 ]
 
-# Common education degree and institution keywords
-EDUCATION_KEYWORDS = [
-    r"\bbachelor",
-    r"\bmaster",
-    r"\bb\.s\b",
-    r"\bm\.s\b",
-    r"\bb\.tech\b",
-    r"\bm\.tech\b",
-    r"\bb\.e\b",
+# Invoice and Commercial Billing negative patterns (Pattern, Weight)
+INVOICE_PATTERNS: list[tuple[str, int]] = [
+    (r"\binvoice\s*(?:#|no\.?|number)?\s*:", 4),
+    (r"\btax\s+invoice\b", 4),
+    (r"\bbill\s+to\s*:", 4),
+    (r"\bamount\s+due\b", 3),
+    (r"\bbalance\s+due\b", 3),
+    (r"\bsubtotal\s*:\s*[\$€£₹]?\d+", 4),
+    (r"\bpayment\s+terms\s*:\s*(?:net\s+\d+|due\s+on\s+receipt)", 4),
+    (r"\bremittance\s+advice\b", 4),
+    (r"\bpurchase\s+order\b", 3),
+    (r"\breceipt\s*(?:#|no\.?|number)?\s*:", 3),
+]
+
+# Academic Research Paper negative patterns (when no resume sections exist)
+RESEARCH_PAPER_PATTERNS: list[tuple[str, int]] = [
+    (r"\babstract\s*:\s*[A-Z]", 3),
+    (r"\bkeywords\s*:\s*\w+", 3),
+    (r"\b(?:introduction|related\s+work|methodology|experimental\s+results)\s*\n", 2),
+    (r"\b(?:arxiv:\d+|ieee\s+transactions|acm\s+digital\s+library)\b", 3),
+]
+
+# Specific Degree & Academic Qualification indicators
+CANDIDATE_DEGREE_PATTERNS: list[str] = [
+    r"\bb\.?tech\b",
+    r"\bm\.?tech\b",
+    r"\bb\.?s\.?\b(?:\s+in\b)?",
+    r"\bm\.?s\.?\b(?:\s+in\b)?",
+    r"\bb\.?e\.?\b(?:\s+in\b)?",
+    r"\bm\.?e\.?\b(?:\s+in\b)?",
+    r"\bb\.?c\.?a\b",
+    r"\bm\.?c\.?a\b",
+    r"\bbachelor(?:\s+of|\s+degree|\s+in|\'s)",
+    r"\bmaster(?:\s+of|\s+degree|\s+in|\'s)",
     r"\bph\.?d\b",
-    r"\bdegree\b",
-    r"\buniversity\b",
-    r"\bcollege\b",
-    r"\bgpa\b",
-    r"\bacademic\b",
-    r"\bdiploma\b",
-    r"\bhigh school\b",
-    r"\bcurriculum\b",
+    r"\bdiploma\s+in\b",
+    r"\b(?:cgpa|gpa)\s*:\s*\d+",
+    r"\bhigh\s+school\b",
+    r"\bsecondary\s+school\b",
 ]
 
-# Action verbs commonly found in resume bullet points
-ACTION_VERBS = [
+# Role / Professional Experience terminology
+ROLE_TITLE_PATTERNS: list[str] = [
+    r"\bsoftware\s+engineer\b",
+    r"\bsoftware\s+developer\b",
+    r"\bfrontend\s+developer\b",
+    r"\bbackend\s+developer\b",
+    r"\bfull\s*stack\s+developer\b",
+    r"\bweb\s+developer\b",
+    r"\bdata\s+scientist\b",
+    r"\bdata\s+analyst\b",
+    r"\bdevops\s+engineer\b",
+    r"\bcloud\s+engineer\b",
+    r"\bsystem\s+engineer\b",
+    r"\bqa\s+engineer\b",
+    r"\bsoftware\s+development\s+intern\b",
+    r"\bengineering\s+intern\b",
+    r"\bintern\b",
+]
+
+# Common action verbs in candidate project/experience bullet points
+ACTION_VERBS: list[str] = [
     "developed", "built", "implemented", "designed", "created", "maintained",
     "collaborated", "engineered", "architected", "managed", "led", "optimized",
     "analyzed", "deployed", "spearheaded", "programmed", "orchestrated",
 ]
 
 
-def detect_resume_signals(text: str) -> dict[str, bool]:
-    """Inspect extracted document text for resume-characteristic structural and semantic signals."""
-    text_lower = text.lower()
-    lines = [clean_line(line).lower() for line in text.splitlines() if clean_line(line)]
+def detect_explicit_section_headings(text: str) -> set[str]:
+    """Detect distinct, standard resume section headings appearing on dedicated lines."""
+    detected_sections: set[str] = set()
+    lines = text.splitlines()
 
-    # 1. Contact Information Signal
+    for raw_line in lines:
+        line = clean_line(raw_line).strip()
+        if not line or len(line) < 3 or len(line) > 50:
+            continue
+
+        # Headings should not end in question marks or look like questions
+        if line.endswith("?") or line.startswith("What ") or line.startswith("Explain "):
+            continue
+
+        normalized_line = re.sub(r"[:#\-_]+$", "", line).strip().lower()
+
+        for section_name, variants in SECTION_HEADINGS.items():
+            if section_name == "other":
+                # Check summary/objective specifically
+                if normalized_line in ["summary", "professional summary", "about me", "objective", "career objective", "profile"]:
+                    detected_sections.add("summary")
+            else:
+                if normalized_line in variants:
+                    detected_sections.add(section_name)
+
+    return detected_sections
+
+
+def calculate_resume_scores(text: str) -> tuple[int, int, dict[str, Any]]:
+    """Compute weighted positive resume score and negative document score."""
+    text_lower = text.lower()
+    
+    # 1. Compute Negative Score
+    negative_score = 0
+    negative_reasons: list[str] = []
+
+    for pattern, weight in ACADEMIC_LAB_PATTERNS:
+        if re.search(pattern, text_lower):
+            negative_score += weight
+            negative_reasons.append(f"academic_lab_pattern: {pattern}")
+
+    for pattern, weight in INVOICE_PATTERNS:
+        if re.search(pattern, text_lower):
+            negative_score += weight
+            negative_reasons.append(f"invoice_pattern: {pattern}")
+
+    for pattern, weight in RESEARCH_PAPER_PATTERNS:
+        if re.search(pattern, text_lower):
+            negative_score += weight
+            negative_reasons.append(f"research_paper_pattern: {pattern}")
+
+    # 2. Compute Positive Score
+    positive_score = 0
+    positive_signals: list[str] = []
+
+    # Name signal
+    candidate_name = extract_name(text)
+    if candidate_name:
+        positive_score += 3
+        positive_signals.append(f"name: {candidate_name}")
+
+    # Contact signals
     email = extract_email(text)
+    if email:
+        positive_score += 3
+        positive_signals.append(f"email: {email}")
+
     phone = extract_phone(text)
-    has_links = bool(
+    if phone:
+        positive_score += 3
+        positive_signals.append(f"phone: {phone}")
+
+    has_profile_links = bool(
         re.search(
-            r"\b(linkedin\.com|github\.com|gitlab\.com|kaggle\.com|leetcode\.com|portfolio|behance\.net|bitbucket\.org)\b",
+            r"\b(linkedin\.com/in/|linkedin\.com/pub/|github\.com/[a-zA-Z0-9_-]+/?(?:\s|$)|leetcode\.com/|kaggle\.com/)\b",
             text_lower,
         )
     )
-    has_contact = bool(email or phone or has_links)
+    if has_profile_links:
+        positive_score += 2
+        positive_signals.append("personal_profile_link")
 
-    # 2. Section Heading Signals
-    heading_matches = {
-        "skills": False,
-        "education": False,
-        "experience": False,
-        "projects": False,
-        "certifications": False,
-        "summary": False,
-    }
+    # Explicit Section Headings
+    detected_sections = detect_explicit_section_headings(text)
+    if detected_sections:
+        heading_points = min(len(detected_sections) * 3, 15)
+        positive_score += heading_points
+        positive_signals.append(f"sections: {list(detected_sections)}")
 
-    for line in lines:
-        for section, variants in SECTION_HEADINGS.items():
-            if section in heading_matches and line in variants:
-                heading_matches[section] = True
+    # Specific Degree Phrasing
+    has_degree = any(re.search(pat, text_lower) for pat in CANDIDATE_DEGREE_PATTERNS)
+    if has_degree:
+        positive_score += 2
+        positive_signals.append("degree_qualification")
 
-    # 3. Content-based heuristics in case headings vary slightly
-    # Skills content
+    # Role Titles & Action Verbs
+    has_roles = any(re.search(pat, text_lower) for pat in ROLE_TITLE_PATTERNS)
+    action_verb_count = sum(1 for v in ACTION_VERBS if re.search(r"\b" + v + r"\b", text_lower))
+    if has_roles or action_verb_count >= 2:
+        positive_score += 2
+        positive_signals.append("roles_and_action_verbs")
+
+    # Skills vocabulary
     matched_skills = [
         s for s in COMMON_SKILL_KEYWORDS
         if re.search(r"\b" + re.escape(s.lower()) + r"\b", text_lower)
     ]
-    has_skills = heading_matches["skills"] or len(matched_skills) >= 2
+    if len(matched_skills) >= 3:
+        positive_score += 2
+        positive_signals.append(f"skills_count: {len(matched_skills)}")
 
-    # Education content
-    has_edu_keywords = any(re.search(pattern, text_lower) for pattern in EDUCATION_KEYWORDS)
-    has_education = heading_matches["education"] or has_edu_keywords
+    # Bullet points structure
+    bullet_count = sum(1 for line in text.splitlines() if is_bullet_line(line))
+    if bullet_count >= 2:
+        positive_score += 2
+        positive_signals.append(f"bullet_points: {bullet_count}")
 
-    # Experience / Work content
-    has_exp_keywords = bool(
-        re.search(
-            r"\b(internship|intern|work experience|employment|software engineer|developer|analyst|full-time|part-time|co-op)\b",
-            text_lower,
-        )
-    )
-    has_experience = heading_matches["experience"] or has_exp_keywords
-
-    # Projects content
-    has_proj_keywords = bool(re.search(r"\b(projects?|built a |developed a |personal projects?)\b", text_lower))
-    has_projects = heading_matches["projects"] or (has_proj_keywords and len(matched_skills) >= 1)
-
-    # Certifications content
-    has_cert_keywords = bool(re.search(r"\b(certif|aws certified|license|credential|coursera|udemy)\b", text_lower))
-    has_certifications = heading_matches["certifications"] or has_cert_keywords
-
-    # Summary / Objective
-    has_summary = (
-        heading_matches["summary"]
-        or "objective" in text_lower
-        or "summary" in text_lower
-        or "about me" in text_lower
-    )
-
-    # Action verbs
-    matched_verbs = [v for v in ACTION_VERBS if re.search(r"\b" + v + r"\b", text_lower)]
-    has_action_verbs = len(matched_verbs) >= 2
-
-    return {
-        "has_contact": has_contact,
-        "has_skills": has_skills,
-        "has_education": has_education,
-        "has_experience": has_experience,
-        "has_projects": has_projects,
-        "has_certifications": has_certifications,
-        "has_summary": has_summary,
-        "has_action_verbs": has_action_verbs,
+    details = {
+        "positive_score": positive_score,
+        "negative_score": negative_score,
+        "positive_signals": positive_signals,
+        "negative_reasons": negative_reasons,
+        "detected_sections": list(detected_sections),
+        "has_candidate_name": bool(candidate_name),
+        "has_email": bool(email),
+        "has_phone": bool(phone),
+        "has_degree": has_degree,
+        "skills_count": len(matched_skills),
     }
+
+    return positive_score, negative_score, details
 
 
 def validate_resume_content(extracted_text: str) -> None:
-    """Validate that the extracted text contains sufficient resume-characteristic signals.
+    """Validate that the extracted document reasonably looks like a candidate resume.
     
-    Raises an HTTPException(400) if the document is too short, resembles an invoice/receipt,
-    or lacks minimum resume signals.
+    Rejects academic assignments, lab manuals, experiment instruction sheets, invoices,
+    and non-resume texts deterministically.
+    
+    Raises:
+        HTTPException(status_code=400, detail="The uploaded document does not appear to be a resume. Please upload a valid resume.")
     """
+    error_message = "The uploaded document does not appear to be a resume. Please upload a valid resume."
+
     if not extracted_text or not extracted_text.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The uploaded document does not appear to be a resume. Please upload a valid resume.",
+            detail=error_message,
         )
 
     words = extracted_text.split()
     if len(words) < 25:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The uploaded document does not appear to be a resume. Please upload a valid resume.",
+            detail=error_message,
         )
 
-    text_lower = extracted_text.lower()
+    pos_score, neg_score, details = calculate_resume_scores(extracted_text)
+    section_count = len(details["detected_sections"])
 
-    # Check for strong invoice / receipt indicators
-    invoice_matches = [ind for ind in NON_RESUME_INDICATORS if re.search(ind, text_lower)]
-    signals = detect_resume_signals(extracted_text)
-
-    # Count affirmative signals
-    # Sections of interest: skills, education, experience, projects, certifications, summary
-    section_signal_count = sum(
-        1 for k in [
-            "has_skills",
-            "has_education",
-            "has_experience",
-            "has_projects",
-            "has_certifications",
-            "has_summary",
-        ] if signals[k]
-    )
-
-    total_signal_score = (
-        (1 if signals["has_contact"] else 0)
-        + section_signal_count
-        + (1 if signals["has_action_verbs"] else 0)
-    )
-
-    # An invoice or receipt with 2+ invoice keywords and fewer than 2 standard resume sections is rejected
-    if len(invoice_matches) >= 2 and section_signal_count < 2:
+    # 1. Negative override: High negative score immediately disqualifies the document
+    if neg_score >= 5:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The uploaded document does not appear to be a resume. Please upload a valid resume.",
+            detail=error_message,
         )
 
-    # Legitimate resumes (fresher or experienced) should have at least 2 distinct resume signals
-    # (e.g. Contact + Education, Contact + Skills, Skills + Projects, Education + Experience, etc.)
-    if total_signal_score < 2 or section_signal_count < 1:
+    if neg_score >= 3 and pos_score < 12:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The uploaded document does not appear to be a resume. Please upload a valid resume.",
+            detail=error_message,
+        )
+
+    # 2. Affirmative validation: Resumes with standard section headings
+    if section_count >= 2:
+        # Fresher or experienced resume with 2+ standard section headers
+        if pos_score >= 8 and neg_score <= 2:
+            return
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_message,
+        )
+
+    if section_count == 1:
+        # Resume with 1 section header (e.g., Skills or Education) must have strong candidate identity
+        if pos_score >= 10 and neg_score == 0 and (details["has_candidate_name"] or details["has_email"]):
+            return
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_message,
+        )
+
+    # 3. Unconventional resumes without explicit section headings
+    if section_count == 0:
+        # Must have clear personal identity (name + email/phone) and candidate skills/degree with 0 negative flags
+        if (
+            details["has_candidate_name"]
+            and details["has_email"]
+            and (details["has_degree"] or details["skills_count"] >= 3)
+            and neg_score == 0
+            and pos_score >= 10
+        ):
+            return
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_message,
         )

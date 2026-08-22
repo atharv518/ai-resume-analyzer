@@ -153,7 +153,12 @@ def extract_phone(text: str) -> str:
 def extract_name(text: str) -> str:
     """Extract candidate name from the top lines of the resume."""
     lines = [line.strip() for line in text.splitlines() if line.strip()]
-    skip_terms = {"resume", "curriculum", "vitae", "cv", "page", "contact", "email", "phone", "profile", "summary"}
+    skip_terms = {
+        "resume", "curriculum", "vitae", "cv", "page", "contact", "email", "phone", "profile", "summary",
+        "college", "university", "department", "school", "institute", "engineering", "experiment", "assignment",
+        "invoice", "question", "instructions", "laboratory", "lab", "academic", "theory", "performance", "conclusion",
+        "aim", "semester", "syllabus", "subject", "chapter", "abstract", "receipt"
+    }
 
     for line in lines[:6]:
         # Ignore lines with contact links or common labels

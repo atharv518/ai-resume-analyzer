@@ -1,9 +1,10 @@
 import io
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 import docx
 
 from app.main import app
-from app.services.resume_validator import detect_resume_signals, validate_resume_content
+from app.services.resume_validator import calculate_resume_scores, validate_resume_content
 
 client = TestClient(app)
 
@@ -28,16 +29,17 @@ def test_resume_signals_fresher():
     Certifications
     AWS Certified Cloud Practitioner (2024)
     """
-    signals = detect_resume_signals(fresher_text)
-    assert signals["has_contact"] is True
-    assert signals["has_skills"] is True
-    assert signals["has_education"] is True
-    assert signals["has_projects"] is True
-    assert signals["has_certifications"] is True
+    pos, neg, details = calculate_resume_scores(fresher_text)
+    assert pos >= 15, f"Expected pos >= 15, got {pos}"
+    assert neg == 0, f"Expected neg == 0, got {neg}"
+    assert details["has_candidate_name"] is True
+    assert details["has_email"] is True
+    assert details["has_phone"] is True
+    assert len(details["detected_sections"]) >= 3
 
     # Validation should succeed without throwing
     validate_resume_content(fresher_text)
-    print("[PASS] Fresher resume content validation passed.")
+    print("[PASS] Fresher resume content validation passed (Score:", pos, "Neg:", neg, ").")
 
 
 def test_resume_signals_experienced():
@@ -59,15 +61,52 @@ def test_resume_signals_experienced():
     Technical Skills
     Python, FastAPI, Django, PostgreSQL, Docker, AWS, Microservices, CI/CD, Redis, Git
     """
-    signals = detect_resume_signals(exp_text)
-    assert signals["has_contact"] is True
-    assert signals["has_skills"] is True
-    assert signals["has_education"] is True
-    assert signals["has_experience"] is True
+    pos, neg, details = calculate_resume_scores(exp_text)
+    assert pos >= 15, f"Expected pos >= 15, got {pos}"
+    assert neg == 0, f"Expected neg == 0, got {neg}"
+    assert details["has_candidate_name"] is True
+    assert details["has_email"] is True
 
     # Validation should succeed without throwing
     validate_resume_content(exp_text)
-    print("[PASS] Experienced resume content validation passed.")
+    print("[PASS] Experienced resume content validation passed (Score:", pos, "Neg:", neg, ").")
+
+
+def test_data_science_lab_experiment_rejection():
+    # Synthetic lab experiment document structure
+    dslab_text = """
+    PACIFIC METROPOLITAN INSTITUTE OF TECHNOLOGY
+    (Affiliated to State Technical Board, Approved by Education Council)
+    100 Innovation Parkway, Suite 400, Metro City, ST-98101
+    Department of Computer Science & Information Systems
+    
+    Data Science Lab Experiment Writing Instructions
+    
+    Experiment No: 03
+    
+    Aim: Implement Fuzzy Membership Function using python API
+    
+    Theory: [ Based slide shared on LMS explain following points within 2-3 pages]
+    1. What is fuzzy set ?
+    2. What do you mean by Membership functions w.r.t. fuzzy sets ?
+    3. What are different membership function and their respective equations ?
+    
+    Performance: [Go to git hub repository: https://github.com/example-edu/membership-functions-lab ]
+    Understand the implementation of fuzzy membership function using graphics.py and 
+    membershipfunction.py by executing graphics.py write the output of the execution. Change the 
+    parameters of various function and check its effect in plots.
+    
+    Conclusion: Thus we have learned implementation of Fuzzy Membership Function using python API.
+    """
+    pos, neg, details = calculate_resume_scores(dslab_text)
+    assert neg >= 10, f"Expected high negative score for lab manual, got {neg}"
+    
+    try:
+        validate_resume_content(dslab_text)
+        assert False, "DSLAB_EXP_3 lab experiment should have been rejected"
+    except HTTPException as exc:
+        assert "The uploaded document does not appear to be a resume" in exc.detail
+        print("[PASS] DSLAB_EXP_3 Lab Experiment rejection confirmed (Neg Score:", neg, "Pos Score:", pos, "):", exc.detail)
 
 
 def test_resume_content_validation_rejections():
@@ -92,20 +131,22 @@ def test_resume_content_validation_rejections():
     try:
         validate_resume_content(invoice_text)
         assert False, "Invoice should have failed resume content validation"
-    except Exception as exc:
-        assert "The uploaded document does not appear to be a resume" in str(exc.detail)
+    except HTTPException as exc:
+        assert "The uploaded document does not appear to be a resume" in exc.detail
         print("[PASS] Invoice rejection confirmed:", exc.detail)
 
-    # 2. Homework / Essay Assignment
+    # 2. Homework / Question Paper Assignment
     homework_text = """
     History of Computing - Assignment 2
+    Question Paper
     Student Name: John
     Date: September 2024
+    Course Code: CS-101
     
     Question 1: Describe the architectural differences between RISC and CISC instruction set architectures.
-    Reduced Instruction Set Computer (RISC) architectures emphasize simple instructions that can be executed
-    within one clock cycle. In contrast, Complex Instruction Set Computer (CISC) architectures provide single
-    instructions that can execute multiple low-level operations such as memory load, arithmetic operation, and memory store.
+    Answer the following questions within 2 pages:
+    1. Explain following points regarding pipelining.
+    2. What is fuzzy set logic?
     
     Conclusion:
     Modern processors often blend both approaches by decoding CISC instructions into internal RISC-like micro-operations.
@@ -113,17 +154,17 @@ def test_resume_content_validation_rejections():
     try:
         validate_resume_content(homework_text)
         assert False, "Homework assignment should have failed resume content validation"
-    except Exception as exc:
-        assert "The uploaded document does not appear to be a resume" in str(exc.detail)
+    except HTTPException as exc:
+        assert "The uploaded document does not appear to be a resume" in exc.detail
         print("[PASS] Homework assignment rejection confirmed:", exc.detail)
 
     # 3. Short random text
-    short_text = "This is a random short text note."
+    short_text = "This is a random short text note about meeting on Friday."
     try:
         validate_resume_content(short_text)
         assert False, "Short text should have failed resume content validation"
-    except Exception as exc:
-        assert "The uploaded document does not appear to be a resume" in str(exc.detail)
+    except HTTPException as exc:
+        assert "The uploaded document does not appear to be a resume" in exc.detail
         print("[PASS] Short text rejection confirmed:", exc.detail)
 
 
@@ -200,11 +241,34 @@ def test_api_general_audit_vs_jd_audit():
     assert "The uploaded document does not appear to be a resume. Please upload a valid resume." in res_inv.json()["detail"]
     print("[PASS] API non-resume rejection returned HTTP 400 with expected error detail.")
 
+    # 4. Test Lab Experiment Upload via API (DSLAB_EXP_3 docx)
+    doc_lab = docx.Document()
+    doc_lab.add_heading("PACIFIC METROPOLITAN INSTITUTE OF TECHNOLOGY", level=1)
+    doc_lab.add_paragraph("Department of Computer Science & Information Systems\nData Science Lab Experiment Writing Instructions")
+    doc_lab.add_heading("Experiment No: 03", level=2)
+    doc_lab.add_paragraph("Aim: Implement Fuzzy Membership Function using python API")
+    doc_lab.add_paragraph("Theory: [ Based slide shared on LMS explain following points ]\n1. What is fuzzy set ?")
+    doc_lab.add_paragraph("Performance: [Go to git hub repository: https://github.com/example-edu/membership-functions-lab ]")
+    doc_lab.add_paragraph("Conclusion: Thus we have learned implementation of Fuzzy Membership Function.")
+    bio_lab = io.BytesIO()
+    doc_lab.save(bio_lab)
+    bio_lab.seek(0)
+
+    res_lab = client.post(
+        "/api/analyze",
+        files={"resume": ("DSLAB_EXP_3.docx", bio_lab.getvalue(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+        data={"job_description": ""}
+    )
+    assert res_lab.status_code == 400
+    assert "The uploaded document does not appear to be a resume. Please upload a valid resume." in res_lab.json()["detail"]
+    print("[PASS] API lab experiment rejection returned HTTP 400 with expected error detail.")
+
 
 if __name__ == "__main__":
-    print("Running Improvements Test Suite...")
+    print("Running Strengthened Improvements Test Suite...")
     test_resume_signals_fresher()
     test_resume_signals_experienced()
+    test_data_science_lab_experiment_rejection()
     test_resume_content_validation_rejections()
     test_api_general_audit_vs_jd_audit()
-    print("\nALL IMPROVEMENT TESTS PASSED SUCCESSFULLY!")
+    print("\nALL STRENGTHENED IMPROVEMENT TESTS PASSED SUCCESSFULLY!")
