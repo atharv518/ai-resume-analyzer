@@ -16,6 +16,13 @@ from app.utils.file_validation import validate_resume_file
 router = APIRouter()
 
 
+class StructuredProjectModel(BaseModel):
+    title: str = ""
+    description: str = ""
+    technologies: list[str] = Field(default_factory=list)
+    is_ongoing: bool = False
+
+
 class ParsedResume(BaseModel):
     name: str = ""
     email: str = ""
@@ -24,7 +31,9 @@ class ParsedResume(BaseModel):
     education: list[str] = Field(default_factory=list)
     experience: list[str] = Field(default_factory=list)
     projects: list[str] = Field(default_factory=list)
+    parsed_projects: list[StructuredProjectModel] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
+
 
 
 class ScoreBreakdown(BaseModel):

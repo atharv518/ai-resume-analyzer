@@ -470,7 +470,7 @@ Provide your response strictly in the following JSON schema:
   }},
   "project_evaluations": [
     {{
-      "project_title": "Project name",
+      "project_title": "Project name (evaluate at most top 3 projects from Parsed Projects)",
       "relevance_score": "High" or "Medium" or "Low" or "Not Relevant",
       "technologies_detected": ["Tech 1", "Tech 2"],
       "skills_demonstrated": ["Skill 1", "Skill 2"],
@@ -525,7 +525,7 @@ Provide your response strictly in the following JSON schema:
   }},
   "project_evaluations": [
     {{
-      "project_title": "Project name",
+      "project_title": "Project name (evaluate at most top 3 projects from Parsed Projects)",
       "relevance_score": "High" or "Medium" or "Low",
       "technologies_detected": ["Tech 1", "Tech 2"],
       "skills_demonstrated": ["Skill 1", "Skill 2"],
@@ -567,7 +567,7 @@ Provide your response strictly in the following JSON schema:
             p_evals_raw = ai_data.get("project_evaluations", [])
             project_evaluations: list[ProjectEvaluation] = []
             if isinstance(p_evals_raw, list) and len(p_evals_raw) > 0:
-                for p in p_evals_raw:
+                for p in p_evals_raw[:3]:
                     if isinstance(p, dict):
                         project_evaluations.append({
                             "project_title": str(p.get("project_title", "Project")),
@@ -578,7 +578,10 @@ Provide your response strictly in the following JSON schema:
                             "improvement_suggestions": str(p.get("improvement_suggestions", "")),
                         })
             if not project_evaluations:
-                project_evaluations = fallback["project_evaluations"]
+                project_evaluations = fallback["project_evaluations"][:3]
+            else:
+                project_evaluations = project_evaluations[:3]
+
 
             recs_raw = ai_data.get("prioritized_recommendations", {})
             prioritized_recs: PrioritizedRecommendations = {

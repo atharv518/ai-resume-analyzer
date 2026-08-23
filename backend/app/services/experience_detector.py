@@ -1,6 +1,6 @@
 import re
 from typing import TypedDict
-from app.services.parser import clean_line, is_bullet_line
+from app.services.parser import clean_line, is_bullet_line, is_pure_contact_line
 
 
 class ExperienceItem(TypedDict):
@@ -133,6 +133,10 @@ def classify_experience_text(
     for entry in experience_lines:
         entry_lower = entry.lower()
 
+        # Check if entry is contact/profile information mistakenly passed in
+        if is_pure_contact_line(entry) or "@" in entry or "linkedin.com" in entry_lower or "github.com" in entry_lower:
+            continue
+
         # Check for virtual simulation first
         if check_and_add_simulation(entry):
             continue
@@ -168,6 +172,7 @@ def classify_experience_text(
                 "category": "professional",
                 "description": [desc] if desc else [title]
             })
+
 
     # 3. Check projects entries for virtual simulations
     for entry in projects_lines:
