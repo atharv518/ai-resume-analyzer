@@ -37,30 +37,63 @@ COMMON_SKILL_KEYWORDS = [
 
 SECTION_HEADINGS = {
     "skills": [
-        "technical skills", "skills & abilities", "skills and abilities", "core skills",
-        "key skills", "skills", "technologies", "tools & technologies", "competencies",
-        "programming skills", "technical proficiencies", "areas of expertise"
+        "skills", "technical skills", "core skills", "core competencies", "technical competencies",
+        "key competencies", "professional competencies", "relevant skills", "areas of expertise",
+        "area of expertise", "technical proficiencies", "technical expertise", "skills & competencies",
+        "skills and competencies", "core technical competencies", "competencies & skills",
+        "competencies and skills", "tools & technologies", "tools and technologies", "technologies & tools",
+        "technologies and tools", "programming skills", "programming languages", "technical toolkit",
+        "technical summary", "technical qualifications", "technologies", "competencies", "proficiencies",
+        "skills & abilities", "skills and abilities", "key skills", "tech stack", "languages & frameworks",
+        "languages and frameworks", "tools & frameworks", "tools and frameworks", "technical background",
+        "programming languages & tools", "programming languages and tools", "languages & tools", "languages and tools"
     ],
     "education": [
         "education", "educational background", "academic background", "academic qualifications",
-        "academics", "qualifications", "education & certifications"
+        "academic history", "academic profile", "educational qualifications", "education & qualifications",
+        "education and qualifications", "education & background", "education and background",
+        "education & training", "education and training", "qualifications", "academics", "academic records",
+        "educational history", "higher education", "degrees & education", "degrees and education"
     ],
     "experience": [
-        "work experience", "professional experience", "employment history", "work history",
-        "experience", "internships", "internship experience", "relevant experience"
+        "experience", "relevant experience", "professional experience", "work experience",
+        "employment history", "work history", "career history", "professional background",
+        "work background", "career background", "industry experience", "relevant work experience",
+        "internship experience", "internships", "internship", "professional & internship experience",
+        "professional and internship experience", "internship & work experience", "internship and work experience",
+        "employment", "practical experience", "professional history", "corporate experience", "job history"
     ],
     "projects": [
-        "projects", "academic projects", "personal projects", "key projects",
-        "technical projects", "featured projects", "selected projects"
+        "projects", "relevant projects", "relevant project work", "selected projects",
+        "featured projects", "technical projects", "personal projects", "academic projects",
+        "key projects", "major projects", "project experience", "project portfolio",
+        "selected project work", "software projects", "capstone projects", "engineering projects",
+        "recent projects", "practical projects", "notable projects", "coursework projects",
+        "hands on projects", "hands-on projects", "systems & projects", "systems and projects",
+        "side projects", "independent projects"
     ],
     "certifications": [
-        "certifications", "certificates", "licenses & certifications", "certifications & courses",
-        "training & certifications", "licenses", "courses", "professional certifications"
+        "certifications", "certificates", "licenses & certifications", "licenses and certifications",
+        "certifications & licenses", "certifications and licenses", "certifications & courses",
+        "certifications and courses", "courses & certifications", "courses and certifications",
+        "training & certifications", "training and certifications", "professional certifications",
+        "licenses", "courses", "professional credentials", "credentials", "accreditations"
     ],
     "other": [
-        "summary", "professional summary", "about me", "objective", "career objective",
-        "awards", "honors", "achievements", "publications", "languages", "references",
-        "interests", "hobbies", "extracurricular activities", "volunteer experience"
+        "research", "research experience", "research & publications", "research and publications",
+        "publications & research", "publications and research", "publications", "papers",
+        "academic research", "achievements", "key achievements", "accomplishments", "honors",
+        "awards", "honors & awards", "honors and awards", "awards & honors", "awards and honors",
+        "awards & achievements", "awards and achievements", "achievements & awards",
+        "achievements and awards", "recognitions", "leadership", "leadership & activities",
+        "leadership and activities", "leadership experience", "volunteer experience", "volunteering",
+        "volunteer work", "community involvement", "community service", "extracurricular activities",
+        "extracurriculars", "co-curricular activities", "activities", "languages", "foreign languages",
+        "interests", "hobbies", "personal interests", "references", "referees", "summary",
+        "professional summary", "executive summary", "career summary", "profile", "personal profile",
+        "about me", "objective", "career objective", "patents", "conferences", "workshops",
+        "seminars", "speaking engagements", "affiliations", "memberships", "professional affiliations",
+        "grants", "military service"
     ]
 }
 
@@ -101,13 +134,13 @@ def is_pure_contact_line(line: str) -> bool:
 def group_section_entries(lines: list[str]) -> list[dict[str, str]]:
     """Group lines into distinct section entries (handling multi-line bullet points and descriptions)."""
     entries: list[dict[str, str]] = []
-    has_bullets = any(is_bullet_line(l) for l in lines)
 
     current_title = ""
     current_descs: list[str] = []
+    header_is_non_bullet = False
 
     def flush_entry():
-        nonlocal current_title, current_descs
+        nonlocal current_title, current_descs, header_is_non_bullet
         if current_title:
             desc_str = " ".join(current_descs).strip()
             full_str = f"{current_title}\n{desc_str}" if desc_str else current_title
@@ -118,6 +151,7 @@ def group_section_entries(lines: list[str]) -> list[dict[str, str]]:
             })
             current_title = ""
             current_descs = []
+            header_is_non_bullet = False
 
     for raw_line in lines:
         if is_pure_contact_line(raw_line):
@@ -125,27 +159,40 @@ def group_section_entries(lines: list[str]) -> list[dict[str, str]]:
 
         line_clean = clean_line(raw_line)
         if not line_clean:
-            if not has_bullets and current_title:
+            if current_title and current_descs:
                 flush_entry()
             continue
 
-        if has_bullets:
-            if is_bullet_line(raw_line):
-                flush_entry()
-                current_title = line_clean
+        is_bullet = is_bullet_line(raw_line)
+
+        if not current_title:
+            current_title = line_clean
+            header_is_non_bullet = not is_bullet
+            continue
+
+        if header_is_non_bullet:
+            if is_bullet:
+                # Bullets belong to the active non-bullet entry header
+                current_descs.append(line_clean)
             else:
-                if current_title:
-                    current_descs.append(line_clean)
-                else:
+                # Non-bullet line
+                if current_descs and (len(line_clean) < 60 and not line_clean.endswith(".")):
+                    # New non-bullet entry header
+                    flush_entry()
                     current_title = line_clean
+                    header_is_non_bullet = True
+                else:
+                    # Subtitle or description continuation
+                    current_descs.append(line_clean)
         else:
-            is_header = len(line_clean) < 60 and not line_clean.endswith(".")
-            if is_header and current_title and current_descs:
+            # Entry was started by a bullet
+            if is_bullet:
+                # Next bullet starts the next entry
                 flush_entry()
                 current_title = line_clean
-            elif not current_title:
-                current_title = line_clean
+                header_is_non_bullet = False
             else:
+                # Non-bullet wrapped continuation of current bullet entry
                 current_descs.append(line_clean)
 
     flush_entry()
@@ -202,8 +249,150 @@ def extract_name(text: str) -> str:
     return ""
 
 
+def normalize_heading(line: str) -> str:
+    """Normalize a potential section heading line for semantic classification."""
+    # 1. Strip leading and trailing decorative wrapper characters (e.g. --- Header ---, === Header ===, *** Header ***, ### Header ###)
+    cleaned = re.sub(r"^[\s\-=_*#~|]+", "", line)
+    cleaned = re.sub(r"[\s\-=_*#~|]+$", "", cleaned)
+
+    # 2. Strip leading numbers/roman numerals/letters/bullets: e.g. "1. ", "1) ", "(1) ", "[1] ", "I. ", "A. ", "(A) ", "[A] ", "• ", "- "
+    cleaned = re.sub(r"^(?:[\s•*·▪▫○●–—\-\+#]+|[\[\(]?[A-Za-z0-9]{1,3}[\]\)\.\:\-]\s*)+", "", cleaned)
+
+    # 3. Strip trailing colon, dashes, hashes, underscores, repeated symbols
+    cleaned = re.sub(r"[:#\-_–—=~*|]+\s*$", "", cleaned).strip()
+
+    # 4. Normalize & to and
+    cleaned = cleaned.replace("&", " and ")
+
+    # 5. Normalize whitespace and lowercase
+    cleaned = re.sub(r"\s+", " ", cleaned).strip().lower()
+    return cleaned
+
+
+def classify_section_heading(raw_line: str) -> str | None:
+    """Classify a line into a semantic resume section heading using multiple structural & semantic signals.
+
+    Returns: 'skills', 'education', 'experience', 'projects', 'certifications', 'other', or None.
+    """
+    stripped = raw_line.strip()
+    if not stripped:
+        return None
+
+    # Length filter: Top-level section headings are concise
+    if len(stripped) > 60:
+        return None
+
+    # Sentence filter: Real section headings NEVER end with sentence punctuation
+    if stripped.endswith((".", "?", "!", ";", ",")):
+        return None
+
+    # Action verb filter: bullet points / sentences starting with action verbs are NOT headings
+    clean_stripped = clean_line(stripped)
+    words = clean_stripped.split()
+    first_word = words[0].lower() if words else ""
+    if first_word in COMMON_ACTION_VERBS:
+        last_word = words[-1].lower() if words else ""
+        is_heading_shape = len(words) <= 4 and last_word in {
+            "projects", "skills", "competencies", "experience", "research", "publications", "education"
+        }
+        if not is_heading_shape:
+            return None
+
+    # Contact line filter
+    if is_pure_contact_line(stripped):
+        return None
+
+    # Date range filter: standalone date ranges (e.g. "2020 - 2024", "Jan 2022 - Present")
+    if re.match(r"^(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*)?(?:19|20)\d{2}\s*[\-\–\—\to]\s*(?:(?:19|20)\d{2}|present|current)\b", stripped, re.IGNORECASE):
+        return None
+
+    # Degree indicators filter: degree lines (e.g. "B.S. in Computer Science") are content, not section headings
+    if re.search(r"\b(?:b\.?s\.?|m\.?s\.?|b\.?tech|m\.?tech|b\.?e\.?|m\.?e\.?|bachelor|master|ph\.?d|diploma)\b", stripped, re.IGNORECASE):
+        if not any(k in stripped.lower() for k in ["education", "academic", "qualification"]):
+            return None
+
+    # Role / Job Title indicators filter (e.g. "Software Engineer", "Backend Developer", "ML Engineering Intern")
+    # Disqualify standalone role lines, but allow section headers containing section nouns (e.g. "Developer Toolkit", "Engineering Skills", "Software Projects")
+    if re.search(r"\b(?:intern|developer|engineer|manager|architect|consultant|analyst|specialist|officer|lead)\b", stripped, re.IGNORECASE):
+        lower_s = stripped.lower()
+        has_section_noun = any(k in lower_s for k in [
+            "experience", "history", "background", "skills", "competencies", "toolkit", "tools", "technologies", "projects", "portfolio"
+        ])
+        if not (has_section_noun or lower_s.strip() in {"internships", "internship experience", "internship"}):
+            return None
+
+    # 1. Check exact membership in normalized dictionary
+    normalized = normalize_heading(stripped)
+    if not normalized or len(normalized) > 55:
+        return None
+
+    for section_name, variants in SECTION_HEADINGS.items():
+        if normalized in variants:
+            return section_name
+
+    # 2. Semantic Token Pattern Matching (Generalized, not dependent on exact dictionary entries)
+    # --- PROJECTS ---
+    if (
+        re.search(r"^(?:[a-z0-9\-\+\#\s/]{1,40}\s+)?(?:projects|project\s+work|project\s+portfolio|project\s+experience)(?:\s+(?:and|&)\s+.*)?$", normalized)
+    ):
+        if not any(role in normalized for role in ["manager", "lead", "coordinator", "assistant", "director"]):
+            return "projects"
+
+    # --- SKILLS ---
+    if (
+        re.search(r"^(?:[a-z0-9\-\+\#\s/]{1,40}\s+)?(?:skills|competencies|proficiencies|expertise|toolkit)(?:\s+(?:and|&)\s+.*)?$", normalized)
+        or re.search(r"^(?:(?:programming\s+)?languages|tools|technologies)\s+and\s+(?:tools|technologies|frameworks|practices|libraries)$", normalized)
+        or re.search(r"^areas?\s+of\s+expertise$", normalized)
+        or re.search(r"^tech(?:nology)?\s+stack$", normalized)
+    ):
+        return "skills"
+
+    # --- EXPERIENCE ---
+    if (
+        re.search(r"^(?:[a-z0-9\-\+\#\s/]{1,40}\s+)?(?:experience|employment|work\s+history|career\s+history|professional\s+background|work\s+background|career\s+background|internships?|internship\s+experience)(?:\s+(?:and|&)\s+.*)?$", normalized)
+    ):
+        if not any(disq in normalized for disq in ["project", "volunteer", "research", "academic"]):
+            return "experience"
+
+    # --- EDUCATION ---
+    if (
+        re.search(r"^(?:[a-z0-9\-\+\#\s/]{1,40}\s+)?(?:education|academics|qualifications|academic\s+background|academic\s+qualifications|academic\s+history|academic\s+profile|educational\s+qualifications|educational\s+background|educational\s+attainment|education\s+and\s+qualifications|degrees\s+and\s+education)(?:\s+(?:and|&)\s+.*)?$", normalized)
+    ):
+        return "education"
+
+    # --- CERTIFICATIONS ---
+    if (
+        re.search(r"^(?:[a-z0-9\-\+\#\s/]{1,40}\s+)?(?:certifications?|certificates?|licenses?|credentials?|accreditations?)(?:\s+(?:and|&)\s+.*)?$", normalized)
+        or re.search(r"^(?:licenses?|training|courses?)\s+and\s+certifications?$", normalized)
+    ):
+        return "certifications"
+
+    # --- OTHER (Known Safe Categories) ---
+    if (
+        re.search(r"^(?:research|publications?|papers|patents?|achievements?|honors?|awards?|accomplishments?|recognitions?|leadership|volunteering|volunteer\s+experience|community\s+service|civic\s+engagement|extracurricular(?:s|\s+activities)?|co-curricular\s+activities|campus\s+involvement|foreign\s+languages?|language\s+proficienc(?:y|ies)|languages?|personal\s+interests|hobbies|interests|references?|referees?|professional\s+summary|executive\s+summary|career\s+summary|career\s+objective|personal\s+profile|summary|profile|about\s+me|objective|conferences?|workshops?|seminars?|speaking\s+engagements?|affiliations?|memberships?|grants?|military\s+service)(?:\s+(?:and|&)\s+.*)?$", normalized)
+    ):
+        return "other"
+
+    # 3. Strong Structural Fallback for completely unfamiliar headings:
+    # Requires explicit structural heading evidence (e.g. wrapped in ---, ===, ***, ###, or Roman numeral prefix)
+    has_decorative_borders = bool(
+        re.match(r"^[-=_*#~|]{2,}\s*.+\s*[-=_*#~|]{2,}$", stripped)
+    )
+    has_roman_numeral_header = bool(
+        re.match(r"^[IVXLCDM]+\.\s+[A-Za-z\s]{3,30}$", stripped)
+    )
+    has_section_label = bool(
+        re.match(r"^section\s+\d+\s*:\s*[A-Za-z\s]{3,30}$", stripped, re.IGNORECASE)
+    )
+
+    if has_decorative_borders or has_roman_numeral_header or has_section_label:
+        return "other"
+
+    return None
+
+
 def segment_sections(text: str) -> dict[str, list[str]]:
-    """Segment resume lines into standard sections based on conservative heading detection."""
+    """Segment resume lines into standard sections based on conservative semantic heading detection."""
     sections: dict[str, list[str]] = {
         "skills": [],
         "education": [],
@@ -221,17 +410,7 @@ def segment_sections(text: str) -> dict[str, list[str]]:
         if not line:
             continue
 
-        # Clean potential section header formatting (e.g. "1. PROJECTS:", "--- SKILLS ---")
-        normalized_line = re.sub(r"^[\s•*·▪▫○●–—\-\+#\d\.\)\(\[\]]+", "", line).strip()
-        normalized_line = re.sub(r"[:#\-_–—]+$", "", normalized_line).strip().lower()
-
-        matched_section = None
-        # Conservative check: only match if normalized line is short (< 50 chars) and matches known headings
-        if len(normalized_line) <= 50:
-            for section_name, heading_variants in SECTION_HEADINGS.items():
-                if normalized_line in heading_variants:
-                    matched_section = section_name
-                    break
+        matched_section = classify_section_heading(raw_line)
 
         if matched_section:
             current_section = matched_section

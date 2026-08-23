@@ -6,10 +6,12 @@ from app.services.parser import (
     COMMON_SKILL_KEYWORDS,
     SECTION_HEADINGS,
     clean_line,
+    classify_section_heading,
     extract_email,
     extract_name,
     extract_phone,
     is_bullet_line,
+    normalize_heading,
 )
 
 # Academic, Lab Experiment, Question Paper, and Assignment negative patterns (Pattern, Weight)
@@ -111,24 +113,14 @@ def detect_explicit_section_headings(text: str) -> set[str]:
     lines = text.splitlines()
 
     for raw_line in lines:
-        line = clean_line(raw_line).strip()
-        if not line or len(line) < 3 or len(line) > 50:
-            continue
-
-        # Headings should not end in question marks or look like questions
-        if line.endswith("?") or line.startswith("What ") or line.startswith("Explain "):
-            continue
-
-        normalized_line = re.sub(r"[:#\-_]+$", "", line).strip().lower()
-
-        for section_name, variants in SECTION_HEADINGS.items():
-            if section_name == "other":
-                # Check summary/objective specifically
-                if normalized_line in ["summary", "professional summary", "about me", "objective", "career objective", "profile"]:
+        matched = classify_section_heading(raw_line)
+        if matched:
+            if matched == "other":
+                normalized = normalize_heading(raw_line)
+                if any(k in normalized for k in ["summary", "profile", "objective", "about me"]):
                     detected_sections.add("summary")
             else:
-                if normalized_line in variants:
-                    detected_sections.add(section_name)
+                detected_sections.add(matched)
 
     return detected_sections
 
