@@ -339,7 +339,7 @@ def generate_fallback_analysis(
 
 async def call_gemini_api(api_key: str, model: str, prompt: str) -> dict[str, Any] | None:
     """Call Google Gemini Generative Language REST API."""
-    model_name = model or "gemini-1.5-flash"
+    model_name = model or "gemini-3.5-flash"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -412,7 +412,7 @@ async def analyze_with_ai(
     ai_config = get_ai_config()
     api_key = ai_config.get("api_key", "").strip()
     provider = ai_config.get("provider", "gemini").lower()
-    model = ai_config.get("model", "gemini-1.5-flash").strip()
+    model = ai_config.get("model", "gemini-3.5-flash").strip()
 
     # Pre-generate complete fallback baseline
     fallback = generate_fallback_analysis(

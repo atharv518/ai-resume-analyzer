@@ -50,5 +50,5 @@ def get_ai_config() -> dict[str, str]:
     return {
         "provider": os.getenv("AI_PROVIDER", "gemini").lower(),
         "api_key": os.getenv("AI_API_KEY", "").strip(),
-        "model": os.getenv("AI_MODEL", "gemini-1.5-flash").strip(),
+        "model": os.getenv("AI_MODEL", "gemini-3.5-flash").strip(),
     }

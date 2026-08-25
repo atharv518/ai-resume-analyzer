@@ -4,6 +4,10 @@
 *.env
 **/.env
 **/.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 !**/.env.example
 !.env.example
 
@@ -41,6 +45,7 @@ __pycache__/
 coverage/
 **/coverage/
 htmlcov/
+test_files/temp_*
 
 # Build & Distribution Artifacts
 dist/
@@ -50,8 +55,18 @@ build/
 *.egg-info/
 **/*.egg-info/
 
+# Logs & Temporary Files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # Operating System & IDE Files
 .DS_Store
 Thumbs.db
 .vscode/
+.idea/
+*.swp
+*~
 pyrefly.toml
+
