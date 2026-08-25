@@ -525,6 +525,35 @@ def is_project_metadata_line(line: str) -> bool:
         if left_name not in {"technologies", "tech stack", "tools", "frameworks", "stack", "languages", "database", "skills"}:
             return False
 
+    # Title with inline separator e.g. "Project Title | Tech1, Tech2", "Project Title – Tech/Desc", "Project Title — Tech/Desc"
+    # If the left side is a valid title and not a field label, this is a project title header line, NOT metadata.
+    for sep in [" | ", " — ", " – "]:
+        if sep in stripped:
+            parts = stripped.split(sep, 1)
+            left_candidate = parts[0].strip()
+            right_candidate = parts[1].strip()
+            if 2 <= len(left_candidate) <= 60 and not is_action_bullet(left_candidate) and not left_candidate.endswith(('.', '!', ';')):
+                left_lower = left_candidate.lower().rstrip(':')
+                field_indicators = {
+                    "tech", "technologies", "tools", "stack", "framework", "frameworks",
+                    "language", "languages", "platform", "platforms", "database", "databases",
+                    "github", "gitlab", "bitbucket", "repository", "repo", "source",
+                    "demo", "live", "website", "url", "link", "duration", "timeline",
+                    "role", "team", "status", "type", "category", "domain", "environment",
+                    "project link", "source code", "live demo", "tech stack",
+                    "project url", "project type", "libraries", "key skills", "built with",
+                    "tools used", "core technologies", "features", "highlights", "details",
+                    "responsibilities", "description", "overview", "outcome", "outcomes",
+                    "impact", "results", "achievements", "deliverables", "contributions", "summary"
+                }
+                if left_lower not in field_indicators:
+                    if (left_candidate[0].isupper() or left_candidate[0].isdigit()) and len(right_candidate) > 1:
+                        pipe_count = stripped.count(" | ")
+                        if sep == " | " and pipe_count >= 2 and "," not in right_candidate and not any(len(w) > 20 for w in stripped.split(" | ")):
+                            pass
+                        else:
+                            return False
+
     # 1. Label:value pattern — "Word(s): content" where the label is a short field name
     #    Catches: Technologies: ..., GitHub: ..., Duration: ..., Stack: FooLang, etc.
     #    Excludes: "Project Beta: Built a microservices..." (project title: description)
@@ -782,7 +811,7 @@ def extract_structured_projects(project_lines: list[str], full_text: str = "") -
             current_techs.extend(parse_techs_from_line(clean_content))
             continue
 
-        # --- STRONG BOUNDARY: Inline separator "Title – Desc" / "Title | Desc" ---
+        # --- STRONG BOUNDARY: Inline separator "Title – Desc/Tech" / "Title | Desc/Tech" ---
         has_inline_sep = False
         for sep in [" – ", " — ", " | "]:
             if sep in clean_content:
@@ -790,7 +819,7 @@ def extract_structured_projects(project_lines: list[str], full_text: str = "") -
                 left = parts[0].strip()
                 right = parts[1].strip()
                 if 2 <= len(left) <= 50 and not is_action_bullet(left) and len(right) > 2:
-                    if not is_project_metadata_line(left + ": " + right):
+                    if not is_project_metadata_line(left):
                         flush()
                         current_title = left
                         if is_project_metadata_line(right):
@@ -807,22 +836,23 @@ def extract_structured_projects(project_lines: list[str], full_text: str = "") -
             continue
 
         # Handle ": " separator carefully — only treat as project boundary if
-        # the full line doesn't look like project metadata (label: value)
+        # the left side is a project title and not a field label
         if ": " in clean_content and not has_inline_sep:
             parts = clean_content.split(": ", 1)
             left = parts[0].strip()
             right = parts[1].strip()
             if 2 <= len(left) <= 50 and not is_action_bullet(left) and len(right) > 2:
-                flush()
-                current_title = left
-                if is_project_metadata_line(right):
-                    current_meta.append(right)
-                    current_techs.extend(parse_techs_from_line(right))
-                else:
-                    current_descs.append(right)
-                if not detected_pattern:
-                    detected_pattern = "inline_separator"
-                continue
+                if not is_project_metadata_line(left):
+                    flush()
+                    current_title = left
+                    if is_project_metadata_line(right):
+                        current_meta.append(right)
+                        current_techs.extend(parse_techs_from_line(right))
+                    else:
+                        current_descs.append(right)
+                    if not detected_pattern:
+                        detected_pattern = "inline_separator"
+                    continue
 
         # Handle " - " separator
         if " - " in clean_content and not has_inline_sep:
@@ -830,16 +860,17 @@ def extract_structured_projects(project_lines: list[str], full_text: str = "") -
             left = parts[0].strip()
             right = parts[1].strip()
             if 2 <= len(left) <= 50 and not is_action_bullet(left) and len(right) > 2:
-                flush()
-                current_title = left
-                if is_project_metadata_line(right):
-                    current_meta.append(right)
-                    current_techs.extend(parse_techs_from_line(right))
-                else:
-                    current_descs.append(right)
-                if not detected_pattern:
-                    detected_pattern = "inline_separator"
-                continue
+                if not is_project_metadata_line(left):
+                    flush()
+                    current_title = left
+                    if is_project_metadata_line(right):
+                        current_meta.append(right)
+                        current_techs.extend(parse_techs_from_line(right))
+                    else:
+                        current_descs.append(right)
+                    if not detected_pattern:
+                        detected_pattern = "inline_separator"
+                    continue
 
         # --- STRONG BOUNDARY: Numbered entry ---
         if is_numbered:

@@ -283,6 +283,101 @@ Built a CRUD-based student management system in Python and SQLite with a termina
     print("[PASS] Resume H: 5 projects with short tech-stack metadata lines correctly parsed with title, tech, and description")
 
 
+def test_resume_pipe_tech_list_four_projects():
+    """Verify generic 'Title | Tech1, Tech2, Tech3' pattern parses all 4 projects cleanly."""
+    text = """
+Projects
+
+AI Resume Analyzer | Python, FastAPI, React, Gemini
+Built an AI-powered resume analysis platform that extracts structured resume information, calculates ATS compatibility, compares resumes with job descriptions, and generates recommendations.
+
+Smart Job Matcher | Python, NLP, FastAPI
+Created a job matching application that compares candidate skills and domain keywords against job requirements.
+
+Inventory Management Platform | React, Node.js, PostgreSQL
+Developed a responsive inventory application with product management, search, filtering, and database-backed APIs.
+
+Local LLM Assistant | Python, FastAPI, Docker
+Implemented a lightweight developer assistant using a local language model with a FastAPI service layer.
+"""
+    parsed = parse_resume(text)
+    projects = parsed["parsed_projects"]
+    assert len(projects) == 4, f"Expected 4 projects, got {len(projects)}: {[p['title'] for p in projects]}"
+
+    # Project 1
+    assert projects[0]["title"] == "AI Resume Analyzer"
+    assert "Python" in projects[0]["technologies"]
+    assert "FastAPI" in projects[0]["technologies"]
+    assert "React" in projects[0]["technologies"]
+    assert "Gemini" in projects[0]["technologies"]
+    assert "Built an AI-powered" in projects[0]["description"]
+
+    # Project 2
+    assert projects[1]["title"] == "Smart Job Matcher"
+    assert "Python" in projects[1]["technologies"]
+    assert "NLP" in projects[1]["technologies"]
+    assert "FastAPI" in projects[1]["technologies"]
+    assert "Created a job matching" in projects[1]["description"]
+
+    # Project 3
+    assert projects[2]["title"] == "Inventory Management Platform"
+    assert "React" in projects[2]["technologies"]
+    assert "Node.js" in projects[2]["technologies"]
+    assert "PostgreSQL" in projects[2]["technologies"]
+    assert "Developed a responsive" in projects[2]["description"]
+
+    # Project 4
+    assert projects[3]["title"] == "Local LLM Assistant"
+    assert "Python" in projects[3]["technologies"]
+    assert "FastAPI" in projects[3]["technologies"]
+    assert "Docker" in projects[3]["technologies"]
+    assert "Implemented a lightweight" in projects[3]["description"]
+
+    # AI evaluation must be capped at top 3
+    exp_class = classify_experience_text([], parsed["projects"], text)
+    ai_result = generate_fallback_analysis(
+        name=parsed["name"],
+        skills=parsed["skills"],
+        projects=parsed["projects"],
+        education=parsed["education"],
+        certifications=parsed["certifications"],
+        raw_text=text,
+        jd_text="",
+        match_results={},
+        exp_classification=exp_class,
+    )
+    assert len(ai_result["project_evaluations"]) <= 3, f"Expected <= 3 AI project evaluations, got {len(ai_result['project_evaluations'])}"
+
+    print("[PASS] Resume Pipe Tech List: 4 projects correctly parsed with title, tech, and description; AI evaluated <= 3")
+
+
+def test_resume_fictional_pipe_tech_projects():
+    """Verify generic 'Title | Tech1, Tech2' works with completely fictional names and stacks."""
+    text = """
+Projects
+
+Nebula Engine | FooLang, BarDB
+Engineered real-time telemetry processing pipeline for distributed nodes.
+
+Orion Dashboard | XFramework, YSQL
+Built distributed monitoring interface for cluster metrics and health alerts.
+"""
+    parsed = parse_resume(text)
+    projects = parsed["parsed_projects"]
+    assert len(projects) == 2, f"Expected 2 projects, got {len(projects)}: {[p['title'] for p in projects]}"
+    assert projects[0]["title"] == "Nebula Engine"
+    assert "FooLang" in projects[0]["technologies"]
+    assert "BarDB" in projects[0]["technologies"]
+    assert "Engineered real-time" in projects[0]["description"]
+
+    assert projects[1]["title"] == "Orion Dashboard"
+    assert "XFramework" in projects[1]["technologies"]
+    assert "YSQL" in projects[1]["technologies"]
+    assert "Built distributed monitoring" in projects[1]["description"]
+
+    print("[PASS] Fictional Pipe Tech Projects: 2 fictional projects correctly parsed")
+
+
 def test_end_to_end_analyze_route():
     """End-to-end analyze route returns structured projects up to 10 and project_evaluations <= 3."""
     async def run():
@@ -348,5 +443,7 @@ if __name__ == "__main__":
     test_resume_f_contact_isolation()
     test_resume_g_experience_date_does_not_affect_projects()
     test_resume_h_multi_project_with_short_tech_stacks()
+    test_resume_pipe_tech_list_four_projects()
+    test_resume_fictional_pipe_tech_projects()
     test_end_to_end_analyze_route()
     print("\nALL UNIVERSAL PARSING TESTS PASSED!")
