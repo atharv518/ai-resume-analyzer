@@ -139,6 +139,24 @@ English | Spanish | French"""
         print(f"  - Virtual Simulation Items: {res_sim['experience_analysis']['virtual_simulation_items']}")
         print(f"  - Certifications: {len(res_sim['parsed_resume']['certifications'])}")
 
+        # 6. Test Character-Spaced Synthetic PDF Resume Upload
+        print("\nTesting Character-Spaced Synthetic PDF Resume Upload...")
+        with open("test_files/synthetic_spaced_text_resume.pdf", "rb") as f:
+            files = {"resume": ("synthetic_spaced_text_resume.pdf", f, "application/pdf")}
+            data = {"job_description": "We are seeking a Python / Full-Stack Developer with experience in PostgreSQL, REST APIs, and Docker."}
+            r = client.post(f"{BASE_URL}/api/analyze", files=files, data=data)
+            assert r.status_code == 200, f"Spaced PDF resume analysis failed: {r.text}"
+            res_pdf = r.json()
+            assert res_pdf["success"] is True
+            assert res_pdf["parsed_resume"]["name"] == "ALEX JOHNSON"
+            assert "alex.johnson@example.com" in res_pdf["parsed_resume"]["email"]
+            assert "Python" in res_pdf["parsed_resume"]["skills"]
+            assert len(res_pdf["parsed_resume"]["parsed_projects"]) >= 1
+            print(f"[PASS] Synthetic Spaced PDF Live API Analysis:")
+            print(f"  - Overall ATS Score: {res_pdf['ats_score']['overall_score']} / 100 ({res_pdf['ats_score']['rating']})")
+            print(f"  - Parsed Name: {res_pdf['parsed_resume']['name']}")
+            print(f"  - Parsed Skills: {len(res_pdf['parsed_resume']['skills'])} skills detected")
+
     print("\nALL LIVE END-TO-END HTTP TESTS PASSED!")
 
 if __name__ == "__main__":

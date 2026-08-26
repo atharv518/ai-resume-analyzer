@@ -44,7 +44,7 @@ def test_health_check_endpoint():
     """Verify health check responds with 200 OK and includes X-Request-ID header."""
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"ok": True}
+    assert response.json().get("status") == "healthy"
     assert "x-request-id" in response.headers
     print("[PASS] Health check returns 200 and includes X-Request-ID header")
 

@@ -1,8 +1,12 @@
 import io
+import logging
 import re
+from typing import Any
 import docx
 import pypdf
 from fastapi import HTTPException, status
+
+logger = logging.getLogger(__name__)
 
 
 def clean_linkedin_pdf_artifacts(text: str) -> str:
@@ -18,48 +22,226 @@ def clean_linkedin_pdf_artifacts(text: str) -> str:
     return cleaned.strip()
 
 
-def extract_ocr_from_pdf(reader: pypdf.PdfReader) -> str:
-    """Attempt OCR extraction on image-only / scanned PDF pages if OCR engine is available."""
+def is_suspicious_extraction(text: str) -> bool:
+    """Determine if extracted text is malformed, character-spaced, or fragmented."""
+    if not text or not text.strip():
+        return True
+
+    clean_str = text.strip()
+    tokens = clean_str.split()
+    if len(tokens) < 5:
+        return True
+
+    lines = [line.strip() for line in clean_str.splitlines() if line.strip()]
+    if not lines:
+        return True
+
+    # 1. Single character alphabetic tokens ratio
+    single_char_tokens = [t for t in tokens if len(t) == 1 and t.isalpha()]
+    single_char_ratio = len(single_char_tokens) / len(tokens)
+
+    # 2. Single character lines ratio (vertical character streaming)
+    single_char_lines = [l for l in lines if len(l) == 1 and l.isalpha()]
+    single_char_line_ratio = len(single_char_lines) / len(lines)
+
+    # 3. Average token length
+    avg_token_len = sum(len(t) for t in tokens) / len(tokens)
+
+    # 4. Spaced words pattern: e.g. "A L E X" or "S U M M A R Y" or "P y t h o n"
+    spaced_word_matches = re.findall(r"(?:\b[A-Za-z]\s+){3,}[A-Za-z]\b", clean_str)
+
+    # 5. Meaningful word ratio (words with 4+ characters)
+    meaningful_words = [t for t in tokens if len(t) >= 4 and t.isalpha()]
+    meaningful_word_ratio = len(meaningful_words) / len(tokens)
+
+    # Trigger suspicious flag on clear fragmentation signals:
+    if single_char_ratio > 0.35 and len(tokens) >= 15:
+        return True
+
+    if single_char_line_ratio > 0.30 and len(lines) >= 6:
+        return True
+
+    if avg_token_len < 2.2 and len(tokens) >= 15:
+        return True
+
+    if len(spaced_word_matches) >= 3:
+        return True
+
+    if len(spaced_word_matches) >= 1 and single_char_ratio > 0.20:
+        return True
+
+    if len(tokens) >= 25 and meaningful_word_ratio < 0.10:
+        return True
+
+    return False
+
+
+def reconstruct_spaced_text(text: str) -> str:
+    """Reconstruct words and sentences from character-spaced or fragmented PDF text."""
+    if not text:
+        return ""
+
+    lines = text.splitlines()
+    reconstructed_lines: list[str] = []
+
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line:
+            reconstructed_lines.append("")
+            continue
+
+        tokens = line.split()
+        if not tokens:
+            continue
+
+        # Check if line looks character-spaced
+        single_chars = sum(1 for t in tokens if len(t) == 1 and t.isalnum())
+        is_line_spaced = len(tokens) >= 2 and (single_chars / len(tokens)) >= 0.35
+
+        if is_line_spaced:
+            # Multi-space (>= 2 spaces) or tabs typically separate words in spaced PDF streams
+            word_chunks = re.split(r"\s{2,}|\t+", line)
+            cleaned_chunks: list[str] = []
+
+            for chunk in word_chunks:
+                chunk = chunk.strip()
+                if not chunk:
+                    continue
+
+                chunk_tokens = chunk.split(" ")
+                chunk_single_chars = sum(1 for t in chunk_tokens if len(t) == 1 and t.isalnum())
+
+                if len(chunk_tokens) >= 2 and (chunk_single_chars / len(chunk_tokens)) >= 0.35:
+                    # Merge spaced characters into contiguous words
+                    merged = re.sub(r"(?<=[A-Za-z0-9])\s(?=[A-Za-z0-9])", "", chunk)
+                    # Fix symbols attached to words (e.g. "Pune ," -> "Pune,", "C + +" -> "C++")
+                    merged = re.sub(r"\s+([,.:;|\-–—!?)\]}>])", r"\1", merged)
+                    merged = re.sub(r"([(\[{<])\s+", r"\1", merged)
+                    merged = re.sub(r"\s*([@])\s*", r"\1", merged)
+                    merged = re.sub(r"(?<=[A-Za-z0-9])\s*\+\s*\+", "++", merged)
+                    merged = re.sub(r"(?<=\w)\s*\.\s*(?=[A-Za-z])", ".", merged)
+                    merged = re.sub(r"(?<=[0-9])\s*\.\s*(?=[0-9])", ".", merged)
+                    merged = re.sub(r"(?<=[A-Za-z0-9])\s*-\s*(?=[A-Za-z0-9])", "-", merged)
+                    cleaned_chunks.append(merged)
+                else:
+                    cleaned_chunks.append(chunk)
+
+            reconstructed_lines.append(" ".join(cleaned_chunks))
+        else:
+            # Even if the whole line is not spaced, fix inline spaced symbols like "C + +" or "C #"
+            fixed_line = re.sub(r"(?<=[A-Za-z0-9])\s*\+\s*\+", "++", line)
+            fixed_line = re.sub(r"(?<=[A-Za-z0-9])\s*#\b", "#", fixed_line)
+            reconstructed_lines.append(fixed_line)
+
+    result = "\n".join(reconstructed_lines)
+
+    # General pass for remaining spaced symbols and standard abbreviations
+    result = re.sub(r"\bC\s*\+\s*\+", "C++", result)
+    result = re.sub(r"\bC\s*#", "C#", result)
+
+    # Handle vertical single-character lines (e.g. A\nL\nE\nX\n\nJ\nO\nH\nN)
+    res_lines = result.splitlines()
+    single_char_run: list[str] = []
+    final_lines: list[str] = []
+
+    for l in res_lines:
+        s = l.strip()
+        if len(s) == 1 and s.isalnum():
+            single_char_run.append(s)
+        else:
+            if single_char_run:
+                if len(single_char_run) >= 3:
+                    final_lines.append("".join(single_char_run))
+                else:
+                    final_lines.extend(single_char_run)
+                single_char_run = []
+            final_lines.append(l)
+
+    if single_char_run:
+        if len(single_char_run) >= 3:
+            final_lines.append("".join(single_char_run))
+        else:
+            final_lines.extend(single_char_run)
+
+    return "\n".join(final_lines)
+
+
+def render_pdf_pages_to_images(file_bytes: bytes) -> list[Any]:
+    """Render each page of a PDF into a high-resolution PIL Image using pypdfium2."""
+    images: list[Any] = []
+    try:
+        import pypdfium2
+
+        pdf = pypdfium2.PdfDocument(file_bytes)
+        for page_idx in range(len(pdf)):
+            page = pdf[page_idx]
+            # Render at 2x scale (~144 DPI) for crisp OCR character recognition
+            pil_image = page.render(scale=2.0).to_pil()
+            images.append(pil_image)
+    except Exception as exc:
+        logger.warning(f"Could not render PDF pages via pypdfium2: {exc}")
+
+    return images
+
+
+def extract_ocr_from_pdf(file_bytes: bytes, reader: pypdf.PdfReader | None = None) -> str:
+    """Attempt OCR extraction on rendered PDF pages (or embedded page images) if OCR engine is available."""
     try:
         import pytesseract
         from PIL import Image
 
         extracted_text_pages: list[str] = []
-        for page in reader.pages:
-            for image_file in getattr(page, "images", []):
-                data = getattr(image_file, "data", None)
-                if data is None and isinstance(image_file, dict):
-                    data = image_file.get("data")
-                if not data:
-                    continue
 
-                img = Image.open(io.BytesIO(data))
+        # Strategy A: Render entire PDF pages as images (recovers vector layout, character-spaced fonts, and flattened scans)
+        rendered_images = render_pdf_pages_to_images(file_bytes)
+        for img in rendered_images:
+            try:
                 ocr_result = pytesseract.image_to_string(img)
-
-                # Gracefully handle string, dictionary, list, or other return types from OCR/mocks
-                if isinstance(ocr_result, dict):
-                    if "text" in ocr_result:
-                        val = ocr_result["text"]
-                        ocr_text = " ".join(val) if isinstance(val, list) else str(val)
-                    else:
-                        ocr_text = " ".join(str(v) for v in ocr_result.values() if v)
-                elif isinstance(ocr_result, list):
-                    ocr_text = " ".join(str(item) for item in ocr_result if item)
-                elif isinstance(ocr_result, str):
-                    ocr_text = ocr_result
-                else:
-                    ocr_text = str(ocr_result) if ocr_result is not None else ""
-
+                ocr_text = _normalize_ocr_output(ocr_result)
                 if ocr_text.strip():
                     extracted_text_pages.append(ocr_text.strip())
+            except Exception as ocr_err:
+                logger.warning(f"OCR page extraction failed: {ocr_err}")
+                continue
+
+        # Strategy B: Fallback to embedded image extraction if page rendering yielded nothing
+        if not extracted_text_pages and reader is not None:
+            for page in reader.pages:
+                for image_file in getattr(page, "images", []):
+                    data = getattr(image_file, "data", None)
+                    if data is None and isinstance(image_file, dict):
+                        data = image_file.get("data")
+                    if not data:
+                        continue
+
+                    img = Image.open(io.BytesIO(data))
+                    ocr_result = pytesseract.image_to_string(img)
+                    ocr_text = _normalize_ocr_output(ocr_result)
+                    if ocr_text.strip():
+                        extracted_text_pages.append(ocr_text.strip())
 
         return "\n\n".join(extracted_text_pages).strip()
-    except Exception:
+    except Exception as exc:
+        logger.warning(f"OCR extraction engine unavailable or failed: {exc}")
         return ""
 
 
+def _normalize_ocr_output(ocr_result: Any) -> str:
+    """Normalize varied return types from pytesseract / mocks."""
+    if isinstance(ocr_result, dict):
+        if "text" in ocr_result:
+            val = ocr_result["text"]
+            return " ".join(val) if isinstance(val, list) else str(val)
+        return " ".join(str(v) for v in ocr_result.values() if v)
+    if isinstance(ocr_result, list):
+        return " ".join(str(item) for item in ocr_result if item)
+    if isinstance(ocr_result, str):
+        return ocr_result
+    return str(ocr_result) if ocr_result is not None else ""
+
+
 def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """Extract readable text from PDF bytes with scanned PDF detection and LinkedIn cleaning."""
+    """Extract readable text from PDF bytes with quality verification, rendered page OCR, and de-spacing fallbacks."""
     try:
         reader = pypdf.PdfReader(io.BytesIO(file_bytes), strict=False)
     except Exception as exc:
@@ -77,6 +259,7 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
         except Exception:
             pass  # Some PDF readers still allow reading unencrypted streams
 
+    # Step 1: Standard pypdf extraction
     pages_text: list[str] = []
     try:
         for page in reader.pages:
@@ -94,7 +277,6 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
                     pages_text.append(page_text.strip())
             except Exception:
                 continue
-
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -102,24 +284,36 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
         ) from exc
 
     full_text = "\n\n".join(pages_text).strip()
-
-    # Clean null bytes / corrupt characters
     full_text = full_text.replace("\x00", "")
 
-    # If no selectable text was found, attempt OCR
-    if not full_text or len(full_text.split()) < 5:
-        ocr_result = extract_ocr_from_pdf(reader)
-        if ocr_result:
-            full_text = ocr_result
+    # Step 2: Quality Check
+    # If pypdf extracted clean, good-quality text, use it directly (fast path)
+    if full_text and not is_suspicious_extraction(full_text):
+        return clean_linkedin_pdf_artifacts(full_text)
 
-    if not full_text:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No readable text could be extracted. The PDF appears to be a scanned image or flattened graphic without a selectable text layer. Please upload a standard text PDF, DOCX, TXT, or RTF file.",
-        )
+    # Step 3: Fallback Strategy for Suspicious / Spaced / Scanned PDFs
+    # Fallback 3A: Attempt rendered-page OCR if OCR engine is available
+    ocr_result = extract_ocr_from_pdf(file_bytes, reader)
+    if ocr_result and not is_suspicious_extraction(ocr_result):
+        return clean_linkedin_pdf_artifacts(ocr_result)
 
-    # Clean LinkedIn PDF export artifacts if present
-    return clean_linkedin_pdf_artifacts(full_text)
+    # Fallback 3B: Attempt intelligent text de-spacing and token reconstruction
+    if full_text:
+        reconstructed = reconstruct_spaced_text(full_text)
+        if reconstructed and not is_suspicious_extraction(reconstructed):
+            return clean_linkedin_pdf_artifacts(reconstructed)
+
+    # Fallback 3C: If OCR returned partial text that can also be de-spaced
+    if ocr_result:
+        reconstructed_ocr = reconstruct_spaced_text(ocr_result)
+        if reconstructed_ocr and not is_suspicious_extraction(reconstructed_ocr):
+            return clean_linkedin_pdf_artifacts(reconstructed_ocr)
+
+    # Step 4: If all extraction & fallback strategies failed to produce readable text
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="No readable text could be extracted. The PDF appears to be a scanned image or flattened graphic without a selectable text layer. Please upload a standard text PDF, DOCX, TXT, or RTF file.",
+    )
 
 
 def extract_text_from_docx(file_bytes: bytes) -> str:
