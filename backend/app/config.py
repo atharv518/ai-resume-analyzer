@@ -1,5 +1,5 @@
 import os
-from typing import TypedDict
+from typing import Any, TypedDict
 
 
 class FeatureFlags(TypedDict):
@@ -45,10 +45,20 @@ def get_feature_flags() -> FeatureFlags:
     }
 
 
-def get_ai_config() -> dict[str, str]:
+def get_ai_config() -> dict[str, Any]:
     """Return AI integration configuration without exposing secret defaults."""
     return {
         "provider": os.getenv("AI_PROVIDER", "gemini").lower(),
         "api_key": os.getenv("AI_API_KEY", "").strip(),
         "model": os.getenv("AI_MODEL", "gemini-3.5-flash").strip(),
+        "timeout": int(os.getenv("AI_TIMEOUT_SECONDS", "20")),
     }
+
+
+def get_rate_limit_config() -> dict[str, int]:
+    """Return rate-limiting configuration from environment variables."""
+    return {
+        "max_requests": int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "10")),
+        "window_seconds": int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60")),
+    }
+

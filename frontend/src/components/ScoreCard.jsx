@@ -1,33 +1,5 @@
-import React from "react";
-
-function getRatingConfig(score, rating) {
-  if (score >= 85) {
-    return {
-      badgeClass: "bg-tertiary-container/30 text-tertiary-fixed-dim border border-tertiary-fixed-dim/30",
-      gaugeColor: "#4edea3", // tertiary-fixed-dim / emerald
-      label: rating || "Excellent Match",
-    };
-  }
-  if (score >= 70) {
-    return {
-      badgeClass: "bg-primary-container/30 text-inverse-primary border border-inverse-primary/30",
-      gaugeColor: "#c0c1ff", // inverse-primary / indigo
-      label: rating || "Strong Match",
-    };
-  }
-  if (score >= 50) {
-    return {
-      badgeClass: "bg-[#78350f]/30 text-[#fde68a] border border-[#fde68a]/30",
-      gaugeColor: "#fbbf24", // amber
-      label: rating || "Moderate Match",
-    };
-  }
-  return {
-    badgeClass: "bg-error-container/30 text-error-container border border-error/30",
-    gaugeColor: "#ba1a1a", // error
-    label: rating || "Needs Improvement",
-  };
-}
+import React, { useState } from "react";
+import { getRatingConfig } from "../utils/scoreUtils";
 
 function CircularGauge({ score, color, label }) {
   const radius = 45;
@@ -42,7 +14,7 @@ function CircularGauge({ score, color, label }) {
           cy="50"
           fill="none"
           r={radius}
-          stroke="#3f465c"
+          stroke="#2C2C2E"
           strokeWidth="6"
         />
         <circle
@@ -59,10 +31,10 @@ function CircularGauge({ score, color, label }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="font-display-lg text-display-lg text-white tracking-tighter leading-none">
-          {score}<span className="text-base text-outline-variant font-normal">%</span>
+        <span className="text-3xl sm:text-4xl font-bold text-white tracking-tighter leading-none">
+          {score}<span className="text-sm font-normal text-neutral-400">%</span>
         </span>
-        <span className="font-label-md text-label-md text-tertiary-fixed-dim mt-1">
+        <span className="text-[11px] font-semibold text-accent-cyan mt-1 tracking-wide uppercase">
           {label}
         </span>
       </div>
@@ -70,16 +42,66 @@ function CircularGauge({ score, color, label }) {
   );
 }
 
-function CategoryBar({ label, value, colorClass = "bg-tertiary-fixed-dim" }) {
-  const displayVal = value !== null && value !== undefined ? value : 0;
+function MetricTooltip({ explanation, calculation }) {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div>
-      <div className="flex justify-between font-label-md text-label-md text-outline-variant mb-xs">
-        <span>{label}</span>
-        <span className="text-inverse-on-surface font-semibold">{displayVal}%</span>
+    <div className="relative inline-flex items-center">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        onMouseEnter={() => setIsOpen(true)}
+        onMouseLeave={() => setIsOpen(false)}
+        className="text-neutral-400 hover:text-white transition-colors cursor-pointer p-0.5 focus:outline-none"
+        aria-label="View metric explanation"
+      >
+        <span className="material-symbols-outlined text-[14px]">info</span>
+      </button>
+
+      {isOpen && (
+        <div
+          role="tooltip"
+          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-2.5 rounded-lg bg-[#202024] border border-[#3A3A3C] shadow-2xl text-[11px] text-neutral-200 z-50 pointer-events-none animate-fade-in-up"
+        >
+          <div className="font-semibold text-white mb-1 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[13px] text-accent-cyan">help</span>
+            <span>How this is scored</span>
+          </div>
+          <p className="leading-snug text-neutral-300 mb-1.5">{explanation}</p>
+          {calculation && (
+            <div className="pt-1 border-t border-neutral-700 text-[10px] text-neutral-400 font-mono">
+              Calculation: {calculation}
+            </div>
+          )}
+          {/* Tooltip arrow */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-[#202024]" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CategoryBar({ label, value, weight, explanation, calculation, colorClass = "bg-primary" }) {
+  const displayVal = value !== null && value !== undefined ? Math.round(value) : 0;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5 text-neutral-300 font-medium">
+          <span>{label}</span>
+          <MetricTooltip explanation={explanation} calculation={calculation} />
+          {weight !== undefined && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-800 text-neutral-400 font-mono">
+              {Math.round(weight * 100)}% wt
+            </span>
+          )}
+        </div>
+        <span className="text-white font-semibold font-mono">{displayVal}%</span>
       </div>
-      <div className="h-2 w-full bg-on-secondary-fixed-variant/40 rounded-full overflow-hidden">
+      <div className="h-2 w-full bg-[#242426] rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-700 ease-out ${colorClass}`}
           style={{ width: `${Math.max(4, Math.min(100, displayVal))}%` }}
@@ -92,14 +114,32 @@ function CategoryBar({ label, value, colorClass = "bg-tertiary-fixed-dim" }) {
 function ScoreCard({ atsScore, candidateType }) {
   if (!atsScore) return null;
 
-  const { overall_score, rating, breakdown, summary_feedback } = atsScore;
+  const { overall_score, rating, breakdown, weights_used, summary_feedback } = atsScore;
   const config = getRatingConfig(overall_score, rating);
 
+  const isExperienced = candidateType === "experienced" && breakdown?.experience_score !== null && breakdown?.experience_score !== undefined;
+
+  // Derive weights if not explicitly passed
+  const weights = weights_used || (isExperienced ? {
+    skills: 0.25,
+    experience: 0.30,
+    structure: 0.15,
+    projects: 0.10,
+    education: 0.10,
+    keywords: 0.10,
+  } : {
+    skills: 0.30,
+    projects: 0.25,
+    structure: 0.15,
+    education: 0.15,
+    keywords: 0.15,
+  });
+
   return (
-    <div className="glass-card rounded-xl p-lg">
-      <div className="flex items-center justify-between mb-md">
-        <h3 className="font-title-lg text-title-lg text-white flex items-center gap-2">
-          <span className="material-symbols-outlined text-inverse-primary text-[20px]">
+    <div className="glass-card rounded-xl p-4 sm:p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
+          <span className="material-symbols-outlined text-accent-cyan text-[20px]">
             analytics
           </span>
           <span>ATS Compatibility</span>
@@ -109,7 +149,7 @@ function ScoreCard({ atsScore, candidateType }) {
         </span>
       </div>
 
-      <div className="flex flex-col items-center justify-center my-md">
+      <div className="flex flex-col items-center justify-center my-3">
         <CircularGauge
           score={overall_score}
           color={config.gaugeColor}
@@ -118,38 +158,73 @@ function ScoreCard({ atsScore, candidateType }) {
       </div>
 
       {summary_feedback && (
-        <p className="font-body-md text-body-md text-outline-variant text-xs mb-md leading-relaxed text-center">
+        <p className="text-xs text-neutral-300 mb-4 leading-relaxed text-center bg-[#202024]/50 border border-outline-variant/30 rounded-lg p-2.5">
           {summary_feedback}
         </p>
       )}
 
-      <div className="space-y-sm pt-sm border-t border-outline-variant/20">
+      <div className="space-y-3 pt-3 border-t border-outline-variant/20">
+        {/* Skills Match */}
         <CategoryBar
           label="Skills Match"
           value={breakdown?.skills_score}
-          colorClass="bg-tertiary-fixed-dim"
+          weight={weights.skills}
+          explanation="Measures exact and semantic match of required technical skills against candidate skills identified in the resume."
+          calculation="Exact & canonical skill matches / Required skills"
+          colorClass="bg-emerald-400"
         />
-        <CategoryBar
-          label="Keyword Density"
-          value={breakdown?.keyword_score}
-          colorClass="bg-primary-fixed-dim"
-        />
-        <CategoryBar
-          label="Project Scope"
-          value={breakdown?.projects_score}
-          colorClass="bg-secondary-fixed"
-        />
-        {breakdown?.experience_score !== null && breakdown?.experience_score !== undefined ? (
+
+        {/* Work Experience (if experienced candidate) */}
+        {isExperienced && (
           <CategoryBar
             label="Work Experience"
             value={breakdown.experience_score}
-            colorClass="bg-tertiary-fixed"
+            weight={weights.experience}
+            explanation="Evaluates seniority, years of professional experience, and alignment of previous roles with job requirements."
+            calculation="Calculated from career duration, role titles, and responsibilities"
+            colorClass="bg-indigo-400"
           />
-        ) : (
+        )}
+
+        {/* Project Scope */}
+        <CategoryBar
+          label="Project Scope"
+          value={breakdown?.projects_score}
+          weight={weights.projects}
+          explanation="Assesses technical depth, production complexity, impact metrics, and project relevance to target roles."
+          calculation="Project count, tech stack alignment, and measurable outcomes"
+          colorClass="bg-purple-400"
+        />
+
+        {/* Keyword Density */}
+        <CategoryBar
+          label="Keyword Density"
+          value={breakdown?.keyword_score}
+          weight={weights.keywords}
+          explanation="Quantifies contextual coverage of core industry keywords, frameworks, and domain concepts."
+          calculation="Density of JD keywords found across resume sections"
+          colorClass="bg-sky-400"
+        />
+
+        {/* Formatting & Structure (Always visible!) */}
+        <CategoryBar
+          label="Formatting & Structure"
+          value={breakdown?.structure_score}
+          weight={weights.structure}
+          explanation="Verifies essential contact info (email, phone, name), standard ATS header naming, section segmentation, and bullet structure."
+          calculation="Presence of contact info, standard headers, and parsable bullets"
+          colorClass="bg-teal-400"
+        />
+
+        {/* Education & Credentials */}
+        {breakdown?.education_score !== null && breakdown?.education_score !== undefined && (
           <CategoryBar
-            label="Formatting & Structure"
-            value={breakdown?.structure_score}
-            colorClass="bg-tertiary-fixed"
+            label="Education & Credentials"
+            value={breakdown.education_score}
+            weight={weights.education}
+            explanation="Verifies degree relevance, academic background, and industry-recognized certifications."
+            calculation="Degree level, field of study, and verified certifications"
+            colorClass="bg-amber-400"
           />
         )}
       </div>

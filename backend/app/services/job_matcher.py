@@ -109,9 +109,10 @@ SKILL_CATEGORIES: dict[str, list[str]] = {
 def normalize_skill(skill: str) -> str:
     """Normalize skill string for case-insensitive and format-insensitive comparison."""
     cleaned = skill.strip().lower()
-    cleaned = re.sub(r"[\.js|css]+$", "", cleaned)
+    cleaned = re.sub(r"(?:\.js|\.css)$", "", cleaned)
     cleaned = re.sub(r"[\s\-_]+", "", cleaned)
     return cleaned
+
 
 
 def get_canonical_name(term: str) -> str:
@@ -128,7 +129,7 @@ def get_canonical_name(term: str) -> str:
 
 
 def check_term_in_text(term: str, text_lower: str) -> tuple[bool, str | None]:
-    """Check if term or any of its known aliases are present in the lowercase text."""
+    """Check if term or any of its known aliases are present in the lowercase text using Unicode-aware boundaries."""
     canonical = get_canonical_name(term)
     aliases = TECH_SYNONYMS.get(canonical, [term])
 
@@ -138,18 +139,61 @@ def check_term_in_text(term: str, text_lower: str) -> tuple[bool, str | None]:
             # Stricter word boundary for short 1-2 char acronyms
             pattern = r"(?<![a-zA-Z0-9_\-\.\+])" + re.escape(alias_lower) + r"(?![a-zA-Z0-9_\-\.\+])"
         elif "+" in alias_lower or "#" in alias_lower:
-            pattern = r"(?<![a-zA-Z0-9_])" + re.escape(alias_lower) + r"(?![a-zA-Z0-9_])"
+            pattern = r"(?<![^\W_])" + re.escape(alias_lower) + r"(?![^\W_])"
         else:
-            pattern = r"(?<![\w\-])" + re.escape(alias_lower) + r"(?![\w\-])"
+            pattern = r"(?<![^\W_])" + re.escape(alias_lower) + r"(?![^\W_])"
 
-        if re.search(pattern, text_lower):
+        if re.search(pattern, text_lower, flags=re.UNICODE | re.IGNORECASE):
             return True, alias
 
     return False, None
 
 
-def extract_skills_from_text(text: str) -> list[str]:
-    """Extract identified technical and domain skills with alias awareness."""
+def extract_dynamic_skills_from_jd(jd_text: str) -> list[str]:
+    """Dynamically discover emerging, niche, or multilingual technical terms from the target JD."""
+    if not jd_text or not jd_text.strip():
+        return []
+
+    dynamic_skills: list[str] = []
+
+    # 1. Phrases following common requirement indicators evaluated line by line
+    context_patterns = [
+        r"(?i)(?:experience\s+(?:with|in)|knowledge\s+of|proficien(?:t|cy)\s+in|familiarity\s+with|skills?\s+in|working\s+with|expertise\s+in)\s+([A-Za-z0-9\.\+#\s,/-]{2,100})",
+        r"(?i)(?:technologies|tech\s+stack|tools|requirements?)\s*:\s*([A-Za-z0-9\.\+#\s,/-]{2,100})"
+    ]
+
+    stopwords = {
+        "years", "experience", "skills", "projects", "team", "environment",
+        "solutions", "applications", "degree", "field", "discipline", "work", "role",
+        "hands-on", "strong", "solid", "good", "plus", "bonus"
+    }
+
+    for line in jd_text.splitlines():
+        line_clean = line.strip()
+        if not line_clean:
+            continue
+        for pattern in context_patterns:
+            for match in re.finditer(pattern, line_clean):
+                raw_chunk = match.group(1)
+                items = re.split(r"[,;/]|\band\b", raw_chunk, flags=re.IGNORECASE)
+                for item in items:
+                    clean_item = item.strip().strip(".-_")
+                    if 2 <= len(clean_item) <= 30 and not clean_item.lower().startswith(("the ", "a ", "an ", "our ", "their ")):
+                        if clean_item.lower() not in stopwords:
+                            formatted = clean_item.title() if clean_item.islower() else clean_item
+                            dynamic_skills.append(formatted)
+
+    # 2. Extract technical patterns: CamelCase words (e.g. LangChain, LangGraph, Scikit, PyTorch)
+    camel_case = re.findall(r"\b([A-Z][a-z0-9]+[A-Z][a-zA-Z0-9]*)\b", jd_text)
+    for term in camel_case:
+        if len(term) >= 3 and term.lower() not in {"javascript", "typescript", "fullstack", "frontend", "backend"}:
+            dynamic_skills.append(term)
+
+    return list(dict.fromkeys(dynamic_skills))
+
+
+def extract_skills_from_text(text: str, dynamic_terms: list[str] | None = None) -> list[str]:
+    """Extract identified technical and domain skills with alias awareness and dynamic vocabulary support."""
     found_skills: list[str] = []
     seen_canonical: set[str] = set()
     text_lower = text.lower()
@@ -161,7 +205,7 @@ def extract_skills_from_text(text: str) -> list[str]:
             seen_canonical.add(canonical)
             found_skills.append(canonical)
 
-    # 2. Search other vocab items
+    # 2. Search other static vocab items
     all_vocab = list(dict.fromkeys(COMMON_SKILL_KEYWORDS + DOMAIN_KEYWORDS))
     for term in all_vocab:
         canonical = get_canonical_name(term)
@@ -170,6 +214,15 @@ def extract_skills_from_text(text: str) -> list[str]:
             if is_present:
                 seen_canonical.add(canonical)
                 found_skills.append(canonical)
+
+    # 3. Search dynamic terms extracted from the JD (if provided)
+    if dynamic_terms:
+        for dynamic_term in dynamic_terms:
+            if dynamic_term not in seen_canonical:
+                is_present, _ = check_term_in_text(dynamic_term, text_lower)
+                if is_present:
+                    seen_canonical.add(dynamic_term)
+                    found_skills.append(dynamic_term)
 
     return found_skills
 
@@ -300,8 +353,9 @@ def compare_resume_with_jd(
     resume_skills: list[str],
     jd_text: str
 ) -> MatchResults:
-    """Compare extracted resume content and skills against the job description with synonym awareness."""
-    resume_skills_from_text = extract_skills_from_text(resume_text)
+    """Compare extracted resume content and skills against the job description with synonym awareness and dynamic vocabulary."""
+    dynamic_jd_skills = extract_dynamic_skills_from_jd(jd_text) if jd_text else []
+    resume_skills_from_text = extract_skills_from_text(resume_text, dynamic_terms=dynamic_jd_skills)
     combined_resume_skills = list(dict.fromkeys(resume_skills + resume_skills_from_text))
     resume_text_lower = resume_text.lower()
 
@@ -337,9 +391,10 @@ def compare_resume_with_jd(
             "preferred_skills": [],
         }
 
-    # 1. Extract structured JD info, skills and keywords
+    # 1. Extract structured JD info, skills and keywords (combining standard + dynamic discoveries)
     jd_info = extract_structured_jd_info(jd_text)
-    jd_skills = extract_skills_from_text(jd_text)
+    static_jd_skills = extract_skills_from_text(jd_text)
+    jd_skills = list(dict.fromkeys(static_jd_skills + dynamic_jd_skills))
     jd_keywords = extract_keywords_from_jd(jd_text)
 
     # 2. Match skills with synonym recognition

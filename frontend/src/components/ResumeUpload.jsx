@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const SUPPORTED_EXTENSIONS = [".pdf", ".docx"];
+const SUPPORTED_EXTENSIONS = [".pdf", ".docx", ".txt", ".rtf"];
 
 function formatFileSize(bytes) {
   if (bytes < 1024 * 1024) {
@@ -19,7 +19,7 @@ function getValidationMessage(file) {
   const isSupported = SUPPORTED_EXTENSIONS.some((extension) => filename.endsWith(extension));
 
   if (!isSupported) {
-    return "Please upload a PDF or DOCX resume.";
+    return "Please upload a PDF, DOCX, TXT, or RTF resume.";
   }
 
   if (file.size > MAX_FILE_SIZE) {
@@ -79,21 +79,20 @@ function ResumeUpload({ file, onFileChange, onSelectionStart }) {
   };
 
   return (
-    <div className="flex flex-col gap-2 h-full">
+    <div className="space-y-3">
       <div className="flex justify-between items-baseline">
-        <h2 className="text-sm sm:text-base font-semibold text-inverse-on-surface flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[18px] text-inverse-primary">upload_file</span>
-          <span>Resume Document</span>
+        <h2 className="text-[20px] sm:text-[22px] font-semibold text-primary font-headline-md tracking-tight">
+          Upload your Resume
         </h2>
-        <span className="text-xs text-outline-variant">
-          PDF, DOCX (Max 10MB)
+        <span className="text-xs text-on-surface-variant font-label-xs">
+          PDF, DOCX, TXT, RTF (MAX 10MB)
         </span>
       </div>
 
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        accept=".pdf,.docx,.txt,.rtf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/rtf,text/rtf"
         onChange={handleInputChange}
         className="hidden"
         id="resume-upload"
@@ -101,34 +100,32 @@ function ResumeUpload({ file, onFileChange, onSelectionStart }) {
       />
 
       {file ? (
-        <div className="flex-1 min-h-[170px] sm:min-h-[195px] md:min-h-[210px] rounded-xl border border-tertiary-fixed-dim/40 bg-surface-variant/10 p-4 sm:p-6 flex flex-col justify-between gap-3 backdrop-blur-sm">
+        <div className="border border-[#3A3A3C] rounded-xl min-h-[190px] sm:min-h-[200px] bg-[#1C1C1E] p-5 sm:p-6 flex flex-col justify-between gap-3">
           <div className="flex items-start gap-3.5 min-w-0">
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-tertiary-container/30 border border-tertiary-fixed-dim/40 flex items-center justify-center text-tertiary-fixed-dim shrink-0">
-              <span className="material-symbols-outlined text-[26px] sm:text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                description
-              </span>
+            <div className="w-12 h-12 rounded-xl bg-[#2C2C2E] border border-[#3A3A3C] flex items-center justify-center text-primary shrink-0">
+              <span className="material-symbols-outlined text-[26px]">description</span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm sm:text-base font-bold text-white truncate" title={file.name}>
+              <p className="text-sm sm:text-base font-semibold text-primary truncate" title={file.name}>
                 {file.name}
               </p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-outline-variant">
+                <span className="text-xs text-on-surface-variant font-mono">
                   {formatFileSize(file.size)}
                 </span>
-                <span className="h-1 w-1 rounded-full bg-outline-variant/60"></span>
-                <span className="text-xs text-tertiary-fixed-dim flex items-center gap-1 font-semibold">
+                <span className="h-1 w-1 rounded-full bg-outline-variant"></span>
+                <span className="text-xs text-secondary flex items-center gap-1 font-medium">
                   <span className="material-symbols-outlined text-[14px]">check_circle</span> Ready for Analysis
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end pt-2 border-t border-outline-variant/15">
+          <div className="flex justify-end pt-2 border-t border-[#2C2C2E]">
             <button
               type="button"
               onClick={openFilePicker}
-              className="px-4 py-2 bg-inverse-surface border border-outline-variant/30 text-secondary-fixed-dim hover:text-inverse-primary hover:border-inverse-primary/40 text-xs sm:text-sm font-medium rounded-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-1.5 bg-[#2C2C2E] border border-[#3A3A3C] text-secondary hover:text-primary hover:border-secondary/50 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
               <span>Change Resume</span>
@@ -141,11 +138,12 @@ function ResumeUpload({ file, onFileChange, onSelectionStart }) {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`drop-zone flex-1 min-h-[170px] sm:min-h-[195px] md:min-h-[210px] rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center text-center gap-2 sm:gap-2.5 cursor-pointer bg-surface-variant/5 hover:bg-surface-variant/10 transition-all ${
-            isDragging ? "dragover" : ""
+          className={`border border-dashed border-[#3A3A3C] rounded-xl min-h-[190px] sm:min-h-[200px] bg-[#1C1C1E] flex flex-col items-center justify-center text-center p-4 hover:border-secondary/50 transition-colors cursor-pointer group ${
+            isDragging ? "border-secondary bg-[#201f1f]" : ""
           }`}
           role="button"
           tabIndex={0}
+          aria-label="Upload resume document: drag and drop file here or press Enter to browse"
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -153,33 +151,20 @@ function ResumeUpload({ file, onFileChange, onSelectionStart }) {
             }
           }}
         >
-          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-surface-variant/10 border border-inverse-primary/20 flex items-center justify-center text-inverse-primary transition-transform duration-300 group-hover:scale-110 shadow-sm">
-            <span className="material-symbols-outlined text-[24px] sm:text-[26px]">cloud_upload</span>
-          </div>
-          <div>
-            <p className="text-sm sm:text-base font-semibold text-inverse-on-surface">
-              {isDragging ? "Drop resume here" : "Drag & drop your resume here"}
-            </p>
-            <p className="text-xs text-outline-variant mt-0.5">
-              or click to browse from device (PDF or DOCX)
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openFilePicker();
-            }}
-            className="mt-1 px-4 py-2 bg-primary text-on-primary text-xs sm:text-sm font-semibold rounded-lg hover:bg-primary-container transition-all active:scale-95 flex items-center gap-1.5 shadow-sm cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[16px]">folder_open</span>
-            <span>Browse Files</span>
-          </button>
+          <span className="material-symbols-outlined text-[40px] text-on-surface-variant mb-3 group-hover:text-secondary transition-colors">
+            upload_file
+          </span>
+          <span className="text-primary text-sm sm:text-base font-medium mb-1">
+            Drag & drop your PDF, DOCX, TXT, or RTF here
+          </span>
+          <span className="text-on-surface-variant text-xs sm:text-sm">
+            or <span className="underline underline-offset-2 hover:text-primary transition-colors">browse files</span>
+          </span>
         </div>
       )}
 
       {validationError && (
-        <div className="mt-1 rounded-lg bg-error-container/20 border border-error/30 p-2 text-error text-xs flex items-center gap-1.5">
+        <div className="mt-1 rounded-lg bg-error-container/20 border border-error/30 p-2 text-error text-xs flex items-center gap-1.5" role="alert">
           <span className="material-symbols-outlined text-[15px]">error</span>
           <span>{validationError}</span>
         </div>
@@ -188,4 +173,4 @@ function ResumeUpload({ file, onFileChange, onSelectionStart }) {
   );
 }
 
-export default ResumeUpload;
+export default React.memo(ResumeUpload);

@@ -1,4 +1,5 @@
-from typing import Annotated, Any
+import asyncio
+from typing import Annotated, Any, Callable
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 
@@ -8,12 +9,14 @@ from app.services.ats_scorer import calculate_ats_score
 from app.services.experience_detector import classify_experience_text
 from app.services.extractor import extract_resume_text
 from app.services.job_matcher import compare_resume_with_jd
+from app.services.job_queue import job_queue
 from app.services.parser import parse_resume
 from app.services.resume_validator import validate_resume_content
 from app.utils.file_validation import validate_resume_file
 
-
 router = APIRouter()
+
+MAX_JD_LENGTH = 10_000
 
 
 class StructuredProjectModel(BaseModel):
@@ -33,7 +36,6 @@ class ParsedResume(BaseModel):
     projects: list[str] = Field(default_factory=list)
     parsed_projects: list[StructuredProjectModel] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
-
 
 
 class ScoreBreakdown(BaseModel):
@@ -116,14 +118,11 @@ class JDAlignmentModel(BaseModel):
 
 
 class AIInsights(BaseModel):
-    # Phase 1-3 baseline fields
     role_fit_summary: str
     resume_strengths: list[str] = Field(default_factory=list)
     recommendations: list[str] = Field(default_factory=list)
     project_relevance_summary: str
     is_ai_powered: bool = False
-
-    # Phase 4 advanced AI intelligence fields
     provider_used: str = "deterministic"
     match_explanation: MatchExplanationModel | None = None
     resume_weaknesses: list[str] = Field(default_factory=list)
@@ -149,45 +148,57 @@ class AnalyzeResponse(BaseModel):
     extracted_text: str
 
 
-@router.post("/analyze", response_model=AnalyzeResponse)
-async def analyze_resume(
-    resume: Annotated[UploadFile | None, File()] = None,
-    job_description: Annotated[str | None, Form()] = None,
-) -> AnalyzeResponse:
-    """Receive, extract, parse, compare against Job Description, detect experience, score, and provide AI insights."""
-    # 1. Validation: Resume File
-    if resume is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Please select a resume file.",
-        )
+class AsyncJobSubmitResponse(BaseModel):
+    job_id: str
+    status: str
+    poll_url: str
+    message: str
 
-    # 2. Job Description (Optional for general resume analysis)
-    clean_jd = (job_description or "").strip()
+
+class AsyncJobStatusResponse(BaseModel):
+    job_id: str
+    status: str
+    progress_percentage: int
+    current_step: str
+    created_at: float
+    completed_at: float | None = None
+    result: AnalyzeResponse | None = None
+    error: str | None = None
+
+
+async def process_resume_pipeline(
+    extension: str,
+    file_bytes: bytes,
+    filename: str,
+    clean_jd: str,
+    progress_callback: Callable[[int, str], Any] | None = None,
+) -> dict[str, Any]:
+    """Execute the end-to-end resume extraction, parsing, scoring, and AI analysis pipeline with progress reporting."""
     has_jd = bool(clean_jd and len(clean_jd) >= 10)
 
-    try:
-        filename, extension, file_bytes = await validate_resume_file(resume)
-    finally:
-        await resume.close()
-
-    # 3. Extract text from PDF or DOCX
+    # Step 1: Text extraction
+    if progress_callback:
+        await progress_callback(20, "Extracting text from resume")
     extracted_text = extract_resume_text(extension, file_bytes)
 
-    # 4. Validate resume content (Deterministic lightweight signal validation)
+    # Step 2: Content validation
+    if progress_callback:
+        await progress_callback(35, "Validating resume structure")
     validate_resume_content(extracted_text)
 
-    # 5. Parse basic fields and sections
+    # Step 3: Parsing fields & sections
+    if progress_callback:
+        await progress_callback(50, "Parsing sections, skills, and projects")
     parsed_data = parse_resume(extracted_text)
 
-    # 6. Compare resume with Job Description (Skills & Keywords with Synonyms)
+    # Step 4: Job Description Matching & Experience Classification
+    if progress_callback:
+        await progress_callback(65, "Matching skills and classifying candidate experience")
     match_results = compare_resume_with_jd(
         resume_text=extracted_text,
         resume_skills=parsed_data["skills"],
         jd_text=clean_jd,
     )
-
-    # 7. Classify Experience & Candidate Type
     exp_classification = classify_experience_text(
         experience_lines=parsed_data["experience"],
         projects_lines=parsed_data["projects"],
@@ -195,7 +206,9 @@ async def analyze_resume(
         certifications_lines=parsed_data["certifications"],
     )
 
-    # 8. Compute deterministic ATS Score
+    # Step 5: Deterministic ATS Scoring
+    if progress_callback:
+        await progress_callback(75, "Calculating ATS compatibility score")
     ats_score_result = calculate_ats_score(
         name=parsed_data["name"],
         email=parsed_data["email"],
@@ -211,7 +224,9 @@ async def analyze_resume(
         exp_classification=exp_classification,
     )
 
-    # 9. AI Insights & Actionable Recommendations (Multi-provider / Deterministic Fallback)
+    # Step 6: AI Insights & Actionable Recommendations
+    if progress_callback:
+        await progress_callback(85, "Generating AI insights and recommendations")
     ai_insights_result = await analyze_with_ai(
         name=parsed_data["name"],
         skills=parsed_data["skills"],
@@ -225,10 +240,11 @@ async def analyze_resume(
         exp_classification=exp_classification,
     )
 
-    # 10. Apply Centralized Feature Flags
+    # Step 7: Construct response payload
+    if progress_callback:
+        await progress_callback(95, "Finalizing analysis results")
     flags = get_feature_flags()
 
-    # ATS Score component
     ats_score_payload = None
     if flags.get("SHOW_ATS_SCORE", True):
         ats_score_payload = ATSScore(
@@ -238,7 +254,6 @@ async def analyze_resume(
             summary_feedback=ats_score_result["summary_feedback"],
         )
 
-    # Skill Comparison component (When no JD is provided, missing skills and keyword gaps are omitted)
     skill_comparison_payload = None
     if flags.get("SHOW_SKILL_MATCH", True) or flags.get("SHOW_KEYWORD_ANALYSIS", True):
         matching_skills = match_results["matching_skills"] if flags.get("SHOW_SKILL_MATCH", True) else []
@@ -257,7 +272,6 @@ async def analyze_resume(
             categorized_skills=match_results.get("categorized_skills", {}),
         )
 
-    # Experience Analysis component (Omitted completely if candidate has no professional/internship experience or flag disabled)
     exp_payload = None
     if flags.get("SHOW_EXPERIENCE_ANALYSIS", True):
         exp_payload = ExperienceAnalysis(
@@ -272,13 +286,11 @@ async def analyze_resume(
             explanation=exp_classification["explanation"],
         )
 
-    # AI Insights component
     ai_payload = None
     if flags.get("SHOW_AI_RECOMMENDATIONS", True) or flags.get("SHOW_RESUME_STRENGTHS", True):
         strengths = ai_insights_result["resume_strengths"] if flags.get("SHOW_RESUME_STRENGTHS", True) else []
         recs = ai_insights_result["recommendations"] if flags.get("SHOW_AI_RECOMMENDATIONS", True) else []
 
-        # Convert nested dicts into Pydantic models
         match_exp = (
             MatchExplanationModel(**ai_insights_result["match_explanation"])
             if "match_explanation" in ai_insights_result
@@ -325,7 +337,7 @@ async def analyze_resume(
             jd_alignment=jd_align,
         )
 
-    return AnalyzeResponse(
+    response = AnalyzeResponse(
         success=True,
         message="Resume analyzed successfully against job description." if has_jd else "Resume analyzed successfully (general resume evaluation).",
         filename=filename,
@@ -337,4 +349,110 @@ async def analyze_resume(
         experience_analysis=exp_payload,
         ai_insights=ai_payload,
         extracted_text=extracted_text,
+    )
+    return response.model_dump()
+
+
+@router.post("/analyze", response_model=AnalyzeResponse)
+async def analyze_resume(
+    resume: Annotated[UploadFile | None, File()] = None,
+    job_description: Annotated[str | None, Form()] = None,
+) -> AnalyzeResponse:
+    """Synchronous resume analysis endpoint for direct execution."""
+    if resume is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please select a resume file.",
+        )
+
+    clean_jd = (job_description or "").strip()
+    if len(clean_jd) > MAX_JD_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"The job description must be {MAX_JD_LENGTH:,} characters or fewer.",
+        )
+
+    try:
+        filename, extension, file_bytes = await validate_resume_file(resume)
+    finally:
+        await resume.close()
+
+    result_dict = await process_resume_pipeline(
+        extension=extension,
+        file_bytes=file_bytes,
+        filename=filename,
+        clean_jd=clean_jd,
+    )
+    return AnalyzeResponse(**result_dict)
+
+
+@router.post("/analyze/async", response_model=AsyncJobSubmitResponse, status_code=status.HTTP_202_ACCEPTED)
+async def submit_async_analysis(
+    resume: Annotated[UploadFile | None, File()] = None,
+    job_description: Annotated[str | None, Form()] = None,
+) -> AsyncJobSubmitResponse:
+    """Asynchronous resume analysis endpoint — submits job to queue and returns job ID for polling."""
+    if resume is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please select a resume file.",
+        )
+
+    clean_jd = (job_description or "").strip()
+    if len(clean_jd) > MAX_JD_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"The job description must be {MAX_JD_LENGTH:,} characters or fewer.",
+        )
+
+    try:
+        filename, extension, file_bytes = await validate_resume_file(resume)
+    finally:
+        await resume.close()
+
+    job_id = job_queue.create_job()
+
+    # Dispatch to background task worker
+    asyncio.create_task(
+        job_queue.execute_job(
+            job_id,
+            process_resume_pipeline,
+            extension=extension,
+            file_bytes=file_bytes,
+            filename=filename,
+            clean_jd=clean_jd,
+        )
+    )
+
+    return AsyncJobSubmitResponse(
+        job_id=job_id,
+        status="queued",
+        poll_url=f"/api/jobs/{job_id}",
+        message="Resume analysis job queued successfully.",
+    )
+
+
+@router.get("/jobs/{job_id}", response_model=AsyncJobStatusResponse)
+async def get_job_status(job_id: str) -> AsyncJobStatusResponse:
+    """Poll the status and retrieve results of an asynchronous analysis job."""
+    job = job_queue.get_job(job_id)
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Analysis job not found or has expired.",
+        )
+
+    result_payload = None
+    if job.result:
+        result_payload = AnalyzeResponse(**job.result)
+
+    return AsyncJobStatusResponse(
+        job_id=job.job_id,
+        status=job.status.value,
+        progress_percentage=job.progress_percentage,
+        current_step=job.current_step,
+        created_at=job.created_at,
+        completed_at=job.completed_at,
+        result=result_payload,
+        error=job.error,
     )

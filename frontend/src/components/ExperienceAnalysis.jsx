@@ -20,32 +20,32 @@ function ExperienceAnalysis({ experienceAnalysis }) {
   }
 
   return (
-    <div className="space-y-md">
+    <div className="space-y-4">
       {/* Genuine Professional / Internship Experience Section */}
       {include_experience_section && (
-        <div className="glass-card rounded-xl p-lg">
-          <div className="flex items-center gap-md mb-md">
-            <div className="w-10 h-10 rounded-lg bg-inverse-primary/20 border border-inverse-primary/30 flex items-center justify-center text-inverse-primary">
-              <span className="material-symbols-outlined text-[22px]">work</span>
+        <div className="glass-card rounded-xl p-4 sm:p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan">
+              <span className="material-symbols-outlined text-[20px]">work</span>
             </div>
             <div>
-              <h3 className="font-title-lg text-title-lg text-white">
+              <h3 className="text-sm sm:text-base font-semibold text-white">
                 Professional & Internship Experience
               </h3>
               {explanation && (
-                <p className="font-body-md text-body-md text-outline-variant text-xs">{explanation}</p>
+                <p className="text-xs text-neutral-400 mt-0.5">{explanation}</p>
               )}
             </div>
           </div>
 
-          <div className="space-y-md">
+          <div className="space-y-3">
             {professional_items && professional_items.length > 0 && (
               <div>
-                <h4 className="font-label-md text-label-md text-secondary-fixed-dim uppercase tracking-wider mb-sm flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-[16px]">business_center</span>
+                <h4 className="text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[15px]">business_center</span>
                   <span>Work History ({professional_items.length})</span>
                 </h4>
-                <ul className="space-y-sm">
+                <ul className="space-y-2">
                   {professional_items.map((item, idx) => {
                     const parts = String(item).split("\n");
                     const title = parts[0].trim();
@@ -53,11 +53,11 @@ function ExperienceAnalysis({ experienceAnalysis }) {
                     return (
                       <li
                         key={idx}
-                        className="rounded-lg bg-surface-variant/5 border border-outline-variant/20 p-md"
+                        className="rounded-lg bg-[#202024]/50 border border-outline-variant/30 p-3"
                       >
-                        <div className="font-title-lg text-title-lg text-white text-sm font-semibold">{title}</div>
+                        <div className="text-white text-xs sm:text-sm font-semibold">{title}</div>
                         {desc && (
-                          <p className="font-body-md text-body-md text-outline-variant text-xs mt-1 leading-relaxed">{desc}</p>
+                          <p className="text-neutral-300 text-xs mt-1 leading-relaxed">{desc}</p>
                         )}
                       </li>
                     );
@@ -67,12 +67,12 @@ function ExperienceAnalysis({ experienceAnalysis }) {
             )}
 
             {internship_items && internship_items.length > 0 && (
-              <div className="mt-md pt-sm border-t border-outline-variant/10">
-                <h4 className="font-label-md text-label-md text-tertiary-fixed-dim uppercase tracking-wider mb-sm flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-[16px]">school</span>
+              <div className="mt-3 pt-2.5 border-t border-outline-variant/20">
+                <h4 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[15px]">school</span>
                   <span>Internships ({internship_items.length})</span>
                 </h4>
-                <ul className="space-y-sm">
+                <ul className="space-y-2">
                   {internship_items.map((item, idx) => {
                     const parts = String(item).split("\n");
                     const title = parts[0].trim();
@@ -80,11 +80,11 @@ function ExperienceAnalysis({ experienceAnalysis }) {
                     return (
                       <li
                         key={idx}
-                        className="rounded-lg bg-tertiary-container/10 border border-tertiary-fixed-dim/20 p-md"
+                        className="rounded-lg bg-emerald-500/10 border border-emerald-500/25 p-3"
                       >
-                        <div className="font-title-lg text-title-lg text-tertiary-fixed-dim text-sm font-semibold">{title}</div>
+                        <div className="text-emerald-300 text-xs sm:text-sm font-semibold">{title}</div>
                         {desc && (
-                          <p className="font-body-md text-body-md text-outline-variant text-xs mt-1 leading-relaxed">{desc}</p>
+                          <p className="text-neutral-300 text-xs mt-1 leading-relaxed">{desc}</p>
                         )}
                       </li>
                     );
@@ -98,25 +98,25 @@ function ExperienceAnalysis({ experienceAnalysis }) {
 
       {/* Separate Virtual Job Simulation Highlight */}
       {has_virtual_experience && virtual_simulation_items && virtual_simulation_items.length > 0 && (
-        <div className="glass-card rounded-xl p-lg border-l-4 border-inverse-primary">
-          <div className="flex items-center gap-md mb-sm">
-            <div className="w-10 h-10 rounded-lg bg-inverse-primary/20 border border-inverse-primary/30 flex items-center justify-center text-inverse-primary">
-              <span className="material-symbols-outlined text-[22px]">workspace_premium</span>
+        <div className="glass-card rounded-xl p-4 sm:p-5 border-l-4 border-accent-cyan">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan">
+              <span className="material-symbols-outlined text-[20px]">workspace_premium</span>
             </div>
             <div>
-              <span className="px-2 py-0.5 rounded-full bg-inverse-primary/20 text-inverse-primary border border-inverse-primary/30 font-label-md text-label-md text-xs">
+              <span className="px-2 py-0.5 rounded-full bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/25 text-[11px] font-semibold">
                 Virtual Experience / Job Simulation
               </span>
-              <h3 className="font-title-lg text-title-lg text-white mt-1">
+              <h3 className="text-sm sm:text-base font-semibold text-white mt-1">
                 Experiential Simulation Programs
               </h3>
             </div>
           </div>
-          <p className="font-body-md text-body-md text-outline-variant text-xs mb-md leading-relaxed">
+          <p className="text-xs text-neutral-400 mb-3 leading-relaxed">
             Recognized as practical virtual simulations (e.g. Forage). Demonstrates proactive self-directed learning and real-world task familiarity.
           </p>
 
-          <ul className="space-y-sm">
+          <ul className="space-y-2">
             {virtual_simulation_items.map((item, idx) => {
               const isObj = typeof item === "object" && item !== null;
               const rawStr = isObj ? item.title || "" : String(item);
@@ -129,13 +129,13 @@ function ExperienceAnalysis({ experienceAnalysis }) {
               return (
                 <li
                   key={idx}
-                  className="rounded-lg bg-surface-variant/5 border border-outline-variant/20 p-md"
+                  className="rounded-lg bg-[#202024]/50 border border-outline-variant/30 p-3"
                 >
-                  <div className="font-title-lg text-title-lg text-white text-sm font-semibold">
+                  <div className="text-white text-xs sm:text-sm font-semibold">
                     {title}
                   </div>
                   {description && (
-                    <p className="font-body-md text-body-md text-outline-variant text-xs mt-1 leading-relaxed">
+                    <p className="text-neutral-300 text-xs mt-1 leading-relaxed">
                       {description}
                     </p>
                   )}
@@ -149,4 +149,4 @@ function ExperienceAnalysis({ experienceAnalysis }) {
   );
 }
 
-export default ExperienceAnalysis;
+export default React.memo(ExperienceAnalysis);

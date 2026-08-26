@@ -1,21 +1,18 @@
 import React from "react";
 
+const MAX_JD_CHARS = 10000;
+
 function JobDescription({ value, onChange, error }) {
-  const charCount = value ? value.trim().length : 0;
+  const charCount = value ? value.length : 0;
 
   return (
-    <div className="flex flex-col gap-2 h-full">
+    <div className="space-y-3">
       <div className="flex justify-between items-baseline">
-        <label
-          htmlFor="job-description"
-          className="text-sm sm:text-base font-semibold text-inverse-on-surface flex items-center gap-1.5"
-        >
-          <span className="material-symbols-outlined text-[18px] text-tertiary-fixed-dim">work</span>
-          <span>Target Job Description</span>
-          <span className="text-xs text-outline-variant font-normal">(Optional)</span>
-        </label>
-        <span className="text-xs text-outline-variant/80">
-          {charCount} / 5000 chars
+        <h2 className="text-lg font-semibold text-primary font-headline-md tracking-tight">
+          Job Description
+        </h2>
+        <span className={`text-xs ${charCount > MAX_JD_CHARS ? "text-error font-semibold" : "text-on-surface-variant font-label-xs"}`}>
+          {charCount.toLocaleString()} / {MAX_JD_CHARS.toLocaleString()} CHARS
         </span>
       </div>
 
@@ -23,12 +20,12 @@ function JobDescription({ value, onChange, error }) {
         id="job-description"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        rows={6}
-        placeholder="Paste target job description to match skills, ATS keywords & role fit..."
-        className={`w-full flex-1 min-h-[170px] sm:min-h-[195px] md:min-h-[210px] rounded-xl border bg-surface-variant/5 p-3.5 sm:p-4 text-xs sm:text-sm text-inverse-on-surface focus:border-inverse-primary focus:ring-2 focus:ring-inverse-primary/20 transition-all placeholder:text-outline-variant/50 resize-none outline-none leading-relaxed ${
+        maxLength={MAX_JD_CHARS}
+        placeholder="Paste the job description here (optional)..."
+        className={`w-full h-[140px] bg-[#1C1C1E] border rounded-xl p-4 text-on-surface focus:outline-none focus:border-secondary/50 resize-none placeholder:text-outline-variant text-sm font-body-md transition-colors ${
           error
-            ? "border-error/50 ring-2 ring-error/20"
-            : "border-outline-variant/30 hover:border-outline-variant/50"
+            ? "border-error/50 ring-1 ring-error/30"
+            : "border-[#3A3A3C]"
         }`}
       />
 
@@ -37,15 +34,9 @@ function JobDescription({ value, onChange, error }) {
           <span className="material-symbols-outlined text-[14px]">error</span>
           <span>{error}</span>
         </p>
-      ) : (
-        <p className="text-outline-variant text-xs flex items-center gap-1">
-          <span className="material-symbols-outlined text-[14px] text-tertiary-fixed-dim shrink-0">tips_and_updates</span>
-          <span className="truncate sm:whitespace-normal">Enables role-fit scoring & keyword gap analysis.</span>
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }
 
-export default JobDescription;
-
+export default React.memo(JobDescription);

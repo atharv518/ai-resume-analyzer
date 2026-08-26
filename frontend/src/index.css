@@ -5,15 +5,15 @@
 @layer base {
   html {
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-    background-color: #0b1c30;
-    color: #eaf1ff;
+    background-color: #000000;
+    color: #e5e2e1;
   }
 
   body {
     min-width: 320px;
     margin: 0;
-    background-color: #0b1c30;
-    color: #eaf1ff;
+    background-color: #000000;
+    color: #e5e2e1;
   }
 
   button,
@@ -29,35 +29,67 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(11, 28, 48, 0.6);
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(118, 117, 134, 0.4);
+    background-color: #3A3A3C;
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(192, 193, 255, 0.4);
+    background-color: #4A4A4C;
   }
 }
 
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
 .glass-card {
-  background-color: rgba(33, 49, 69, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(199, 196, 215, 0.2);
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+  background-color: #18181A;
+  border: 1px solid #2C2C2E;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
 }
 
 .drop-zone {
-  border: 2px dashed #767586;
+  border: 1px dashed #3A3A3C;
   transition: all 0.2s ease;
 }
 
 .drop-zone:hover,
 .drop-zone.dragover {
-  border-color: #c0c1ff;
-  background-color: rgba(192, 193, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.03);
 }
 
+/* Staggered card reveal animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger delay classes for dashboard cards */
+.stagger-1 { animation-delay: 40ms; }
+.stagger-2 { animation-delay: 80ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 160ms; }
+.stagger-5 { animation-delay: 200ms; }
+.stagger-6 { animation-delay: 240ms; }
+.stagger-7 { animation-delay: 280ms; }
+.stagger-8 { animation-delay: 320ms; }
+.stagger-9 { animation-delay: 360ms; }
+.stagger-10 { animation-delay: 400ms; }
+.stagger-11 { animation-delay: 440ms; }
+.stagger-12 { animation-delay: 480ms; }

@@ -19,45 +19,40 @@ ACADEMIC_LAB_PATTERNS: list[tuple[str, int]] = [
     # Lab experiment headers and instructions
     (r"\bexperiment\s*(?:no\.?|number|#)?\s*:\s*\d+", 4),
     (r"\b(?:lab\s+)?experiment\s+(?:writing\s+)?instructions\b", 4),
-    (r"\b(?:aim|problem\s+statement)\s*:", 3),
-    (r"\btheory\s*:\s*\[?", 3),
-    (r"\bperformance\s*:\s*\[?", 3),
-    (r"\bapparatus\s*(?:required)?\s*:", 3),
-    (r"\bprocedure\s*:", 3),
+    (r"\b(?:aim|problem\s+statement)\s*:\s*(?:to\s+(?:study|implement|verify|demonstrate)|write\s+a\s+program)", 4),
+    (r"\bapparatus\s*(?:required)?\s*:", 4),
+    (r"\bprocedure\s*:\s*(?:step\s+\d+|connect\s+the|setup\s+the)", 4),
     (r"\bconclusion\s*:\s*(?:thus\s+we\s+have|hence\s+verified|hence\s+proved|in\s+this\s+experiment)", 4),
-    (r"\b(?:go\s+to|check\s+out)\s+(?:git\s*hub|github)\s+repository\b", 3),
     (r"\b(?:write|check)\s+the\s+output\s+of\s+(?:the\s+)?execution\b", 3),
     (r"\bbased\s+slide\s+shared\s+on\s+lms\b", 3),
-    (r"\bdepartment\s+of\s+(?:information\s+technology|computer|electronics|mechanical|civil|electrical|science|engineering|physics|chemistry|mathematics)\b", 3),
     (r"\b(?:affiliated\s+to|approved\s+by\s+a\.?i\.?c\.?t\.?e|shaikshanik\s+sankul)\b", 3),
     
     # Assignments, Homework, and Question Papers
     (r"\b(?:question\s+paper|assignment\s*(?:no\.?|number|#)?\s*:\s*\d+)\b", 4),
     (r"\b(?:roll\s*no\.?\s*:|prn\s*:|submitted\s+by\s*:|submitted\s+to\s*:)\b", 3),
-    (r"\b(?:course\s+code|subject\s+code|max\s+marks|academic\s+year\s*:|semester\s*(?:i|ii|iii|iv|v|vi|vii|viii|\d+))\b", 3),
+    (r"\b(?:course\s+code|subject\s+code|max\s+marks|academic\s+year\s*:|semester\s*(?:i|ii|iii|iv|v|vi|vii|viii|\d+)\s*examination)\b", 3),
     (r"\b(?:what\s+is\s+a?\s*[\w\s]{2,30}\?|what\s+do\s+you\s+mean\s+by|explain\s+(?:the\s+)?following\s+points)\b", 3),
     (r"\banswer\s+(?:all\s+)?(?:the\s+)?following\s+questions?\b", 4),
 ]
 
 # Invoice and Commercial Billing negative patterns (Pattern, Weight)
 INVOICE_PATTERNS: list[tuple[str, int]] = [
-    (r"\binvoice\s*(?:#|no\.?|number)?\s*:", 4),
+    (r"\binvoice\s*(?:#|no\.?|number)?\s*:\s*[A-Z0-9_-]+", 4),
     (r"\btax\s+invoice\b", 4),
     (r"\bbill\s+to\s*:", 4),
-    (r"\bamount\s+due\b", 3),
-    (r"\bbalance\s+due\b", 3),
+    (r"\bamount\s+due\s*:\s*[\$€£₹]?\d+", 4),
+    (r"\bbalance\s+due\s*:\s*[\$€£₹]?\d+", 4),
     (r"\bsubtotal\s*:\s*[\$€£₹]?\d+", 4),
     (r"\bpayment\s+terms\s*:\s*(?:net\s+\d+|due\s+on\s+receipt)", 4),
     (r"\bremittance\s+advice\b", 4),
-    (r"\bpurchase\s+order\b", 3),
-    (r"\breceipt\s*(?:#|no\.?|number)?\s*:", 3),
+    (r"\bpurchase\s+order\s*(?:#|no\.?|number)?\s*:", 4),
+    (r"\breceipt\s*(?:#|no\.?|number)?\s*:\s*[A-Z0-9_-]+", 4),
 ]
 
 # Academic Research Paper negative patterns (when no resume sections exist)
 RESEARCH_PAPER_PATTERNS: list[tuple[str, int]] = [
     (r"\babstract\s*:\s*[A-Z]", 3),
-    (r"\bkeywords\s*:\s*\w+", 3),
-    (r"\b(?:introduction|related\s+work|methodology|experimental\s+results)\s*\n", 2),
+    (r"\bindex\s+terms\s*[-—:]\s*\w+", 3),
     (r"\b(?:arxiv:\d+|ieee\s+transactions|acm\s+digital\s+library)\b", 3),
 ]
 
