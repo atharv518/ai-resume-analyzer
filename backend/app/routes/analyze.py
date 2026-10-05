@@ -3,7 +3,7 @@ from typing import Annotated, Any, Callable
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 
-from app.config import FeatureFlags, get_feature_flags
+from app.config import FeatureFlags, get_feature_flags, is_vercel_environment
 from app.services.ai_analyzer import analyze_with_ai
 from app.services.ats_scorer import calculate_ats_score
 from app.services.experience_detector import classify_experience_text
@@ -391,7 +391,16 @@ async def submit_async_analysis(
     resume: Annotated[UploadFile | None, File()] = None,
     job_description: Annotated[str | None, Form()] = None,
 ) -> AsyncJobSubmitResponse:
-    """Asynchronous resume analysis endpoint — submits job to queue and returns job ID for polling."""
+    """Asynchronous resume analysis endpoint — submits job to queue and returns job ID for polling.
+
+    Note: This endpoint uses an in-memory job queue which is not reliable on
+    serverless platforms (Vercel). Use POST /api/analyze for Vercel deployments.
+    """
+    if is_vercel_environment():
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Async job queue is not available on serverless deployments. Use POST /api/analyze instead.",
+        )
     if resume is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -434,7 +443,16 @@ async def submit_async_analysis(
 
 @router.get("/jobs/{job_id}", response_model=AsyncJobStatusResponse)
 async def get_job_status(job_id: str) -> AsyncJobStatusResponse:
-    """Poll the status and retrieve results of an asynchronous analysis job."""
+    """Poll the status and retrieve results of an asynchronous analysis job.
+
+    Note: This endpoint depends on the in-memory job queue which is not
+    persistent across serverless function invocations on Vercel.
+    """
+    if is_vercel_environment():
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Async job polling is not available on serverless deployments. Use POST /api/analyze instead.",
+        )
     job = job_queue.get_job(job_id)
     if not job:
         raise HTTPException(
