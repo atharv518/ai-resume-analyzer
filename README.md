@@ -2,6 +2,9 @@
 
 An intelligent, privacy-first web application for automated resume parsing, Job Description (JD) matching, deterministic ATS compatibility scoring, and actionable AI-driven optimization recommendations.
 
+🚀 **Live Demo**: [https://ai-resume-analyzer-indol-zeta.vercel.app/](https://ai-resume-analyzer-indol-zeta.vercel.app/)
+
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20Preview-000000?style=flat&logo=vercel)](https://ai-resume-analyzer-indol-zeta.vercel.app/)
 [![React](https://img.shields.io/badge/Frontend-React%2018%20%2B%20Vite-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS%203-38B2AC?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
@@ -268,9 +271,8 @@ npm run build --prefix frontend
 
 ## 🌐 Deployment
 
-The frontend and backend are decoupled and can be deployed independently:
-
-- **Backend**: Can be deployed to any platform supporting Python/ASGI services (e.g., Render, Railway, AWS ECS, Fly.io). Set `FRONTEND_ORIGINS` to include your production frontend URL.
+- **Live Demo**: [https://ai-resume-analyzer-indol-zeta.vercel.app/](https://ai-resume-analyzer-indol-zeta.vercel.app/)
+- **Backend**: Can be deployed to any platform supporting Python/ASGI services (e.g., Render, Railway, AWS ECS, Fly.io, Vercel). Set `FRONTEND_ORIGINS` to include your production frontend URL.
 - **Frontend**: Can be built (`npm run build`) and deployed as a static site to Vercel, Netlify, or Cloudflare Pages. Set `VITE_API_BASE_URL` to point to your deployed backend API URL.
 
 ---
