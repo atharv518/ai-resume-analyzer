@@ -3,7 +3,7 @@ import time
 import httpx
 from typing import Any
 
-from app.config import get_ai_config, get_feature_flags
+from app.config import get_ai_config, get_feature_flags, is_vercel_environment
 from app.services.job_queue import job_queue
 
 _SERVER_START_TIME = time.time()
@@ -104,7 +104,7 @@ async def get_deep_health_report() -> tuple[dict[str, Any], int]:
 
     http_status = 200 if overall_status in {"healthy", "degraded"} else 503
 
-    report = {
+    report: dict[str, Any] = {
         "status": overall_status,
         "app_name": "NovaATS",
         "version": "2.0.0",
@@ -118,4 +118,14 @@ async def get_deep_health_report() -> tuple[dict[str, Any], int]:
         },
     }
 
+    # Add serverless context notes when running on Vercel
+    if is_vercel_environment():
+        report["serverless_notes"] = {
+            "platform": "vercel",
+            "job_queue": "Instance-local in-memory queue. Not persistent across invocations. Use POST /api/analyze (synchronous).",
+            "rate_limiter": "Instance-local best-effort rate limiting. Not globally distributed.",
+            "uptime": "Reflects cold-start duration of this function instance, not global server uptime.",
+        }
+
     return report, http_status
+

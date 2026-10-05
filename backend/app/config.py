@@ -62,3 +62,30 @@ def get_rate_limit_config() -> dict[str, int]:
         "window_seconds": int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60")),
     }
 
+
+def is_vercel_environment() -> bool:
+    """Detect whether the application is running inside a Vercel serverless function.
+
+    Vercel automatically sets the ``VERCEL`` environment variable to ``"1"``
+    in all deployed functions.
+    """
+    return os.getenv("VERCEL", "").strip() == "1"
+
+
+def get_max_upload_size_bytes() -> int:
+    """Return the maximum allowed upload size in bytes.
+
+    Configurable via ``MAX_UPLOAD_SIZE_MB`` environment variable.
+    Defaults to **4 MB** on Vercel (respecting the 4.5 MB request payload
+    limit) and **10 MB** on traditional server deployments (Render / local).
+    """
+    env_val = os.getenv("MAX_UPLOAD_SIZE_MB", "").strip()
+    if env_val:
+        try:
+            return int(float(env_val) * 1024 * 1024)
+        except (ValueError, TypeError):
+            pass
+    # Safe default: 4 MB on Vercel, 10 MB elsewhere
+    default_mb = 4 if is_vercel_environment() else 10
+    return default_mb * 1024 * 1024
+

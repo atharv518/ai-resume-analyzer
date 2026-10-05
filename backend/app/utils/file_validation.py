@@ -2,7 +2,8 @@ import re
 from pathlib import Path
 from fastapi import HTTPException, UploadFile, status
 
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+from app.config import get_max_upload_size_bytes
+
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".rtf"}
 
 # Magic byte signatures for structured binary file types
@@ -63,14 +64,18 @@ async def validate_resume_file(resume: UploadFile) -> tuple[str, str, bytes]:
             detail="Only PDF, DOCX, TXT, and RTF resume files are supported.",
         )
 
+    max_file_size = get_max_upload_size_bytes()
+    max_mb = max_file_size / (1024 * 1024)
+
     # Read at most one byte beyond the limit, so an oversized upload is detected
     # without reading a potentially much larger file into memory.
-    uploaded_bytes = await resume.read(MAX_FILE_SIZE + 1)
-    if len(uploaded_bytes) > MAX_FILE_SIZE:
+    uploaded_bytes = await resume.read(max_file_size + 1)
+    if len(uploaded_bytes) > max_file_size:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="The resume file must be 10 MB or smaller.",
+            detail=f"The uploaded file is too large for the current deployment. Please upload a resume smaller than {max_mb:.0f} MB.",
         )
+
 
     if not uploaded_bytes:
         raise HTTPException(
